@@ -19,6 +19,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install OpenSSL for Prisma engine binaries (required on alpine)
+RUN apk add --no-cache openssl
+
 # Non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 nextjs
@@ -36,6 +39,9 @@ RUN chmod +x ./entrypoint.sh
 
 # Uploads directory (overridden by Docker volume at runtime)
 RUN mkdir -p /uploads && chown nextjs:nodejs /uploads
+
+# Allow nextjs user to write prisma engine binaries at runtime
+RUN chown -R nextjs:nodejs /app/node_modules/@prisma /app/node_modules/.prisma 2>/dev/null || true
 
 USER nextjs
 EXPOSE 3000
