@@ -32,15 +32,15 @@ Browser
 
 | Route | Purpose |
 |---|---|
-| `/` | 4-step Ant Design wizard — intake form |
+| `/` | 5-step Ant Design wizard — intake form |
 | `/report` | Job report table with search, filter, pagination, CSV export |
 | `/receipt/[id]` | Print-friendly job summary page |
 
 ---
 
-## 4. Intake Form — 4-Step Wizard
+## 4. Intake Form — 5-Step Wizard
 
-Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all steps share one form instance via `Form.useForm()`).
+Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all steps share one form instance via `Form.useForm()`). Images are held separately in a `fileList` state (Ant Design `Upload`).
 
 ### Step 1 — ข้อมูลเบื้องต้น (Basic Info)
 | Field | Type | Notes |
@@ -72,7 +72,17 @@ Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all 
 | สรุปราคาสุทธิ (บาท) | Number input | Required |
 | สถานะ | Select | ลูกค้าอนุมัติซ่อมแล้ว / ซ่อมเสร็จเรียบร้อยแล้ว / ส่งมอบและเก็บเงินแล้ว |
 
-**Navigation:** Back/Next buttons between steps. The Next button validates only the current step's fields before advancing. Submit button on Step 4 calls `POST /api/jobs`.
+### Step 5 — อัปโหลดรูปภาพ (Upload Images)
+| Field | Type | Notes |
+|---|---|---|
+| รูปภาพ | Ant Design `Upload` (dragger) | Optional, max 10 files, accepted: jpg/png/webp, max 5 MB each |
+
+Images are previewed as thumbnails before submission. Upload is optional — staff can skip and submit without images.
+
+**Navigation:** Back/Next buttons between steps. The Next button validates only the current step's fields before advancing. **Submit** button on Step 5 triggers a two-phase submission:
+1. `POST /api/jobs` with all text fields → receives `{ id, jobNo }`
+2. If images selected → `POST /api/jobs/[id]/images` with `multipart/form-data`
+3. Navigate to `/receipt/[id]`
 
 ---
 
@@ -134,6 +144,27 @@ Returns a paginated, filtered list of jobs for the report page.
 
 ---
 
+---
+
+### `POST /api/jobs/[id]/images`
+
+Accepts `multipart/form-data` with one or more image files (field name: `images`). Saves files to `/uploads/[jobId]/` inside the app container (Docker volume `uploads_data`). Creates one `Image` record per file in the database.
+
+**Constraints:** max 10 files per job, max 5 MB per file, accepted types: `image/jpeg`, `image/png`, `image/webp`.
+
+**Response (201):**
+```json
+{ "uploaded": 3 }
+```
+
+---
+
+### `GET /api/uploads/[...path]`
+
+Serves uploaded image files from the filesystem. Next.js API route reads the file from `/uploads/[...path]` and streams it with the correct `Content-Type`. This avoids exposing the raw filesystem outside the container.
+
+---
+
 ### `GET /api/jobs/export`
 
 Returns all matching jobs (same filter params as above, no pagination) as a CSV download.
@@ -177,10 +208,12 @@ A client component that fetches from `GET /api/jobs` and renders an Ant Design `
 
 ## 7. Receipt Page (`/receipt/[id]`)
 
-- Fetches the job by ID via Prisma on the server (Server Component).
+- Fetches the job by ID (including related `images`) via Prisma on the server (Server Component).
 - Displays all job fields in a clean Ant Design `Descriptions` layout.
+- If the job has images, renders them below the details as an Ant Design `Image.PreviewGroup` gallery (thumbnail grid, click to zoom).
+- Image URLs use `/api/uploads/[jobId]/[filename]`.
 - Includes a **Print** button that calls `window.print()`.
-- Print CSS hides the Print button and browser chrome.
+- Print CSS hides the Print button and browser chrome; images print inline.
 - If the ID is not found, renders a 404 page.
 
 ---
@@ -203,8 +236,19 @@ model Job {
   totalPrice   Float
   status       String
   createdAt    DateTime @default(now())
+  images       Image[]
+}
+
+model Image {
+  id        String   @id @default(cuid())
+  jobId     String
+  filename  String               // stored filename, e.g. "abc123.jpg"
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 ```
+
+Images are served at `/api/uploads/[jobId]/[filename]`.
 
 ---
 
@@ -226,11 +270,13 @@ ddcar/
 ```
 
 ### `docker-compose.yml` services
-| Service | Image | Port |
-|---|---|---|
-| `nginx` | nginx:alpine | 80:80 |
-| `app` | local build | 3000 (internal) |
-| `postgres` | postgres:16-alpine | 5432 (internal) |
+| Service | Image | Port | Volume |
+|---|---|---|---|
+| `nginx` | nginx:alpine | 80:80 | — |
+| `app` | local build | 3000 (internal) | `uploads_data:/uploads` |
+| `postgres` | postgres:16-alpine | 5432 (internal) | `pg_data:/var/lib/postgresql/data` |
+
+`uploads_data` is a named Docker volume that persists uploaded images across container restarts.
 
 ### Nginx config
 ```nginx
@@ -267,10 +313,16 @@ ddcar/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx        # print receipt (server component)
 │   │   └── api/
-│   │       └── jobs/
-│   │           ├── route.ts        # POST /api/jobs, GET /api/jobs
-│   │           └── export/
-│   │               └── route.ts    # GET /api/jobs/export (CSV download)
+│   │       ├── jobs/
+│   │       │   ├── route.ts            # POST /api/jobs, GET /api/jobs
+│   │       │   ├── [id]/
+│   │       │   │   └── images/
+│   │       │   │       └── route.ts    # POST /api/jobs/[id]/images
+│   │       │   └── export/
+│   │       │       └── route.ts        # GET /api/jobs/export (CSV)
+│   │       └── uploads/
+│   │           └── [...path]/
+│   │               └── route.ts        # GET /api/uploads/[...path] (file serving)
 │   └── lib/
 │       ├── prisma.ts               # Prisma client singleton
 │       └── jobNo.ts                # job number generation logic
