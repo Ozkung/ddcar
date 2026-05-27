@@ -44,9 +44,10 @@ Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all 
 ### Step 1 — ข้อมูลเบื้องต้น (Basic Info)
 | Field | Type | Notes |
 |---|---|---|
-| เลขที่ใบงาน | Text (read-only display) | Auto-generated on final submit: `DD-YYYYMMDD-NNN` |
 | วันที่รับรถ | Date picker | Required |
 | เวลา | Time picker | Required |
+
+> **Job No.** (`DD-YYYYMMDD-NNN`) is auto-generated server-side on submit and displayed only on the receipt page — it is not a form field.
 
 ### Step 2 — ข้อมูลลูกค้าและรถ (Customer & Vehicle)
 | Field | Type | Notes |
@@ -189,19 +190,18 @@ Add to `/etc/hosts`:
 ```
 ddcar/
 ├── src/
-│   └── app/
-│       ├── layout.tsx          # root layout, Ant Design ConfigProvider + Thai font
-│       ├── page.tsx            # intake form (client component)
-│       ├── receipt/
-│       │   └── [id]/
-│       │       └── page.tsx    # print receipt (server component)
-│       └── api/
-│           └── jobs/
-│               └── route.ts    # POST handler
-├── src/
+│   ├── app/
+│   │   ├── layout.tsx              # root layout, Ant Design ConfigProvider + Thai font
+│   │   ├── page.tsx                # intake form (client component)
+│   │   ├── receipt/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx        # print receipt (server component)
+│   │   └── api/
+│   │       └── jobs/
+│   │           └── route.ts        # POST /api/jobs handler
 │   └── lib/
-│       └── prisma.ts           # Prisma client singleton
-│       └── jobNo.ts            # job number generation logic
+│       ├── prisma.ts               # Prisma client singleton
+│       └── jobNo.ts                # job number generation logic
 ├── prisma/
 │   └── schema.prisma
 ├── Dockerfile
