@@ -31,4 +31,6 @@ model Image {
   filename  String
   createdAt DateTime @default(now())
   job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
 }
