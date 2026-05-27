@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id           String   @id @default(cuid())
+  jobNo        String   @unique
+  date         String
+  time         String
+  customerName String
+  phone        String
+  licensePlate String
+  odometer     Int
+  symptoms     String[]
+  notes        String?
+  cause        String
+  totalPrice   Float
+  status       String
+  createdAt    DateTime @default(now())
+  images       Image[]
+}
+
+model Image {
+  id        String   @id @default(cuid())
+  jobId     String
+  filename  String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
