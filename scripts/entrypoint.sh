@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-echo "▶ Running Prisma migrations..."
-./node_modules/.bin/prisma migrate deploy
+echo "▶ Syncing database schema..."
+./node_modules/.bin/prisma db push --skip-generate
 
 echo "▶ Starting Next.js..."
 exec "$@"
