@@ -7,7 +7,7 @@
 
 ## 1. Goals
 
-Build a Thai-language car-repair intake form for shop staff to log vehicle jobs. After submission the system auto-assigns a job number and renders a print-friendly receipt. All data is stored in PostgreSQL. The app is self-hosted via Docker Compose on a local machine and accessed at `http://ddreport.local`.
+Build a Thai-language car-repair intake form for shop staff to log vehicle jobs. After submission the system auto-assigns a job number and renders a print-friendly receipt. A report page shows all submitted jobs in a searchable, filterable, paginated table with CSV export. All data is stored in PostgreSQL. The app is self-hosted via Docker Compose on a local machine and accessed at `http://ddreport.local`.
 
 ---
 
@@ -33,6 +33,7 @@ Browser
 | Route | Purpose |
 |---|---|
 | `/` | 4-step Ant Design wizard — intake form |
+| `/report` | Job report table with search, filter, pagination, CSV export |
 | `/receipt/[id]` | Print-friendly job summary page |
 
 ---
@@ -75,7 +76,7 @@ Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all 
 
 ---
 
-## 5. API Route
+## 5. API Routes
 
 ### `POST /api/jobs`
 **Request body:**
@@ -107,7 +108,74 @@ Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all 
 
 ---
 
-## 6. Receipt Page (`/receipt/[id]`)
+### `GET /api/jobs`
+
+Returns a paginated, filtered list of jobs for the report page.
+
+**Query parameters:**
+| Param | Type | Description |
+|---|---|---|
+| `page` | number | Page number, default `1` |
+| `pageSize` | number | Records per page, default `20` |
+| `search` | string | Full-text match against `customerName` or `licensePlate` |
+| `status` | string | Filter by exact status value |
+| `dateFrom` | string | Filter jobs with `date >= dateFrom` (YYYY-MM-DD) |
+| `dateTo` | string | Filter jobs with `date <= dateTo` (YYYY-MM-DD) |
+
+**Response (200):**
+```json
+{
+  "data": [ { ...job fields... } ],
+  "total": 142,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+---
+
+### `GET /api/jobs/export`
+
+Returns all matching jobs (same filter params as above, no pagination) as a CSV download.
+
+**Response:** `Content-Type: text/csv`, `Content-Disposition: attachment; filename="jobs-YYYYMMDD.csv"`
+
+CSV columns: `jobNo, date, time, customerName, phone, licensePlate, odometer, symptoms, notes, cause, totalPrice, status, createdAt`
+
+---
+
+## 6. Report Page (`/report`)
+
+A client component that fetches from `GET /api/jobs` and renders an Ant Design `Table`.
+
+**Filter bar (above table):**
+- Text search input — searches `customerName` and `licensePlate` simultaneously
+- Date range picker — filters by `dateFrom` / `dateTo`
+- Status select — filters by job status
+- **Export CSV** button — calls `GET /api/jobs/export` with current filters, triggers browser download
+
+**Table columns:**
+| Column | Field | Notes |
+|---|---|---|
+| เลขที่ใบงาน | `jobNo` | Clickable — opens `/receipt/[id]` in new tab |
+| วันที่ | `date` | |
+| ชื่อลูกค้า | `customerName` | |
+| ทะเบียนรถ | `licensePlate` | |
+| อาการ | `symptoms` | Joined as comma-separated string |
+| ราคาสุทธิ | `totalPrice` | Right-aligned, formatted with `,` separator |
+| สถานะ | `status` | Ant Design `Tag` with color per status |
+| | actions | View receipt icon button |
+
+**Pagination:** Ant Design `Table` built-in pagination, 20 rows/page, synced with `page`/`pageSize` query params so the URL is shareable.
+
+**Status tag colors:**
+- ลูกค้าอนุมัติซ่อมแล้ว → `blue`
+- ซ่อมเสร็จเรียบร้อยแล้ว → `orange`
+- ส่งมอบและเก็บเงินแล้ว → `green`
+
+---
+
+## 7. Receipt Page (`/receipt/[id]`)
 
 - Fetches the job by ID via Prisma on the server (Server Component).
 - Displays all job fields in a clean Ant Design `Descriptions` layout.
@@ -117,7 +185,7 @@ Uses Ant Design `Steps` + `Form` with client-side state held in `useState` (all 
 
 ---
 
-## 7. Database Schema (Prisma)
+## 8. Database Schema (Prisma)
 
 ```prisma
 model Job {
@@ -140,7 +208,7 @@ model Job {
 
 ---
 
-## 8. Docker Production Setup
+## 9. Docker Production Setup
 
 ### File structure
 ```
@@ -185,7 +253,7 @@ Add to `/etc/hosts`:
 
 ---
 
-## 9. Project Structure
+## 10. Project Structure
 
 ```
 ddcar/
@@ -193,12 +261,16 @@ ddcar/
 │   ├── app/
 │   │   ├── layout.tsx              # root layout, Ant Design ConfigProvider + Thai font
 │   │   ├── page.tsx                # intake form (client component)
+│   │   ├── report/
+│   │   │   └── page.tsx            # report table (client component)
 │   │   ├── receipt/
 │   │   │   └── [id]/
 │   │   │       └── page.tsx        # print receipt (server component)
 │   │   └── api/
 │   │       └── jobs/
-│   │           └── route.ts        # POST /api/jobs handler
+│   │           ├── route.ts        # POST /api/jobs, GET /api/jobs
+│   │           └── export/
+│   │               └── route.ts    # GET /api/jobs/export (CSV download)
 │   └── lib/
 │       ├── prisma.ts               # Prisma client singleton
 │       └── jobNo.ts                # job number generation logic
@@ -214,9 +286,8 @@ ddcar/
 
 ---
 
-## 10. Out of Scope
+## 11. Out of Scope
 - Authentication / user accounts
-- Job list / dashboard
 - Edit or delete jobs
 - Email or SMS notifications
 - Multi-language support
