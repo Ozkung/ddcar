@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Table, Input, Select, DatePicker, Button, Tag,
   Space, Typography, Tooltip, message
@@ -46,6 +46,8 @@ export default function ReportPage() {
   const [page, setPage]           = useState(1)
   const [pageSize, setPageSize]   = useState(20)
 
+  const isFilterChange = useRef(false)
+
   const buildParams = useCallback(() => {
     const p = new URLSearchParams()
     p.set('page', String(page))
@@ -72,10 +74,20 @@ export default function ReportPage() {
     }
   }, [buildParams])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  // When filters change: reset to page 1 and fetch
+  useEffect(() => {
+    isFilterChange.current = true
+    setPage(1)
+  }, [search, status, dateFrom, dateTo])
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setPage(1) }, [search, status, dateFrom, dateTo])
+  // Fetch whenever page/pageSize changes, OR after filter-reset lands
+  useEffect(() => {
+    if (isFilterChange.current) {
+      isFilterChange.current = false
+      // page was just reset to 1; this effect fires with page=1 already
+    }
+    fetchData()
+  }, [fetchData])
 
   const handleDateRange: RangePickerProps['onChange'] = (_, strings) => {
     setDateFrom(strings[0])
