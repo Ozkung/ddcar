@@ -47,40 +47,47 @@ export async function POST(request: NextRequest) {
 
 /* ─── GET /api/jobs ──────────────────────────────────────────────────────── */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const page     = Math.max(1, Number(searchParams.get('page')     || '1'))
-  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') || '20')))
-  const search   = searchParams.get('search')   || ''
-  const status   = searchParams.get('status')   || ''
-  const dateFrom = searchParams.get('dateFrom') || ''
-  const dateTo   = searchParams.get('dateTo')   || ''
+  try {
+    const { searchParams } = new URL(request.url)
+    const pageRaw     = Number(searchParams.get('page')     || '1')
+    const pageSizeRaw = Number(searchParams.get('pageSize') || '20')
+    const page     = isNaN(pageRaw)     ? 1   : Math.max(1, pageRaw)
+    const pageSize = isNaN(pageSizeRaw) ? 20  : Math.min(100, Math.max(1, pageSizeRaw))
+    const search   = searchParams.get('search')   || ''
+    const status   = searchParams.get('status')   || ''
+    const dateFrom = searchParams.get('dateFrom') || ''
+    const dateTo   = searchParams.get('dateTo')   || ''
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {}
 
-  if (search) {
-    where.OR = [
-      { customerName: { contains: search, mode: 'insensitive' } },
-      { licensePlate: { contains: search, mode: 'insensitive' } },
-    ]
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { licensePlate: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+    if (status)   where.status = status
+    if (dateFrom || dateTo) {
+      where.date = {}
+      if (dateFrom) where.date.gte = dateFrom
+      if (dateTo)   where.date.lte = dateTo
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdAt: 'desc' },
+        include: { images: { select: { id: true, filename: true } } },
+      }),
+      prisma.job.count({ where }),
+    ])
+
+    return NextResponse.json({ data, total, page, pageSize })
+  } catch (err) {
+    console.error('[GET /api/jobs]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-  if (status)   where.status = status
-  if (dateFrom || dateTo) {
-    where.date = {}
-    if (dateFrom) where.date.gte = dateFrom
-    if (dateTo)   where.date.lte = dateTo
-  }
-
-  const [data, total] = await Promise.all([
-    prisma.job.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { createdAt: 'desc' },
-      include: { images: { select: { id: true, filename: true } } },
-    }),
-    prisma.job.count({ where }),
-  ])
-
-  return NextResponse.json({ data, total, page, pageSize })
 }
