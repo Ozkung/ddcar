@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="jobs-${dateStamp}.csv"`,
+        'Cache-Control': 'no-store',
       },
     })
   } catch (err) {

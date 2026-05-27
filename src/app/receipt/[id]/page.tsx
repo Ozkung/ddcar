@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { Descriptions, Tag, Image, Typography, Divider } from 'antd'
+import { Descriptions, Tag, Typography, Divider } from 'antd'
 import PrintButton from './PrintButton'
+import ImageGallery from './ImageGallery'
 
 const { Title, Text } = Typography
 
@@ -73,20 +74,7 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
         <>
           <Divider />
           <Title level={5}>รูปภาพประกอบ</Title>
-          <Image.PreviewGroup>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {job.images.map(img => (
-                <Image
-                  key={img.id}
-                  src={`/api/uploads/${job.id}/${img.filename}`}
-                  width={120}
-                  height={120}
-                  style={{ objectFit: 'cover', borderRadius: 8 }}
-                  alt={img.filename}
-                />
-              ))}
-            </div>
-          </Image.PreviewGroup>
+          <ImageGallery images={job.images} jobId={job.id} />
         </>
       )}
 
