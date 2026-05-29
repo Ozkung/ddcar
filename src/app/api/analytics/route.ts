@@ -12,14 +12,27 @@ function getCluster(visits: number, totalSpend: number, recencyDays: number): st
   return 'เงียบหาย'
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const dateFrom = searchParams.get('dateFrom') || ''
+    const dateTo   = searchParams.get('dateTo')   || ''
+
     const now = new Date()
-    const todayStr     = now.toISOString().slice(0, 10)        // YYYY-MM-DD
-    const thisMonthStr = todayStr.slice(0, 7)                   // YYYY-MM
-    const thisYearStr  = todayStr.slice(0, 4)                   // YYYY
+    const todayStr     = now.toISOString().slice(0, 10)
+    const thisMonthStr = todayStr.slice(0, 7)
+    const thisYearStr  = todayStr.slice(0, 4)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {}
+    if (dateFrom || dateTo) {
+      where.date = {}
+      if (dateFrom) where.date.gte = dateFrom
+      if (dateTo)   where.date.lte = dateTo
+    }
 
     const allJobs = await prisma.job.findMany({
+      where,
       select: {
         date: true, customerName: true, phone: true,
         licensePlate: true, symptoms: true,
@@ -38,13 +51,24 @@ export async function GET() {
     const totalRevenue      = allJobs.reduce((s, j) => s + j.totalPrice, 0)
     const avgJobValue       = allJobs.length > 0 ? Math.round(totalRevenue / allJobs.length) : 0
     const pendingJobs       = allJobs.filter(j => j.status !== 'ส่งมอบและเก็บเงินแล้ว').length
+    const isFiltered        = !!(dateFrom || dateTo)
 
-    /* ── Revenue by month (last 12 months) ───────────────────────────────── */
+    /* ── Revenue by month (range or last 12 months) ─────────────────────── */
     const monthMap: Record<string, { revenue: number; jobs: number }> = {}
-    for (let i = 11; i >= 0; i--) {
-      const d   = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      monthMap[key] = { revenue: 0, jobs: 0 }
+    if (dateFrom && dateTo) {
+      // Generate every month in the selected range
+      const start = new Date(dateFrom.slice(0, 7) + '-01')
+      const end   = new Date(dateTo.slice(0, 7)   + '-01')
+      for (const d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        monthMap[key] = { revenue: 0, jobs: 0 }
+      }
+    } else {
+      for (let i = 11; i >= 0; i--) {
+        const d   = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        monthMap[key] = { revenue: 0, jobs: 0 }
+      }
     }
     allJobs.forEach(j => {
       const key = j.date.slice(0, 7)
@@ -122,7 +146,12 @@ export async function GET() {
       .slice(0, 10)
 
     return NextResponse.json({
-      kpi: { revenueToday, revenueThisMonth, revenueThisYear, avgJobValue, totalJobs: allJobs.length, pendingJobs },
+      kpi: {
+        revenueToday, revenueThisMonth, revenueThisYear,
+        totalRevenue: Math.round(totalRevenue),
+        avgJobValue, totalJobs: allJobs.length, pendingJobs,
+        isFiltered,
+      },
       revenueByMonth,
       statusDist,
       symptomFreq,

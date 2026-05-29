@@ -1,14 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   Card, Col, Row, Statistic, Tag, Typography,
-  Table, Spin, message, Divider,
+  Table, Spin, message, Divider, DatePicker, Space, Button,
 } from 'antd'
 import {
   DollarOutlined, CarOutlined, ToolOutlined,
-  ClockCircleOutlined, CheckCircleOutlined, WarningOutlined,
+  CheckCircleOutlined, WarningOutlined, ReloadOutlined,
 } from '@ant-design/icons'
+// CarOutlined used in KPI cards
+import dayjs from 'dayjs'
+import type { RangePickerProps } from 'antd/es/date-picker'
+
+const { RangePicker } = DatePicker
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -21,7 +26,8 @@ const { Title, Text } = Typography
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 interface Kpi {
   revenueToday: number; revenueThisMonth: number; revenueThisYear: number
-  avgJobValue: number; totalJobs: number; pendingJobs: number
+  totalRevenue: number; avgJobValue: number; totalJobs: number
+  pendingJobs: number; isFiltered: boolean
 }
 interface CustomerRow {
   name: string; phone: string; visits: number; totalSpend: number
@@ -66,16 +72,39 @@ function ChartCard({ title, height = 260, children }: {
 
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 export default function AnalyticsPage() {
-  const [data, setData]     = useState<AnalyticsData | null>(null)
+  const [data, setData]       = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo,   setDateTo]   = useState('')
 
-  useEffect(() => {
-    fetch('/api/analytics')
+  const fetchData = useCallback(() => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (dateFrom) params.set('dateFrom', dateFrom)
+    if (dateTo)   params.set('dateTo',   dateTo)
+    fetch(`/api/analytics?${params}`)
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(setData)
       .catch(() => message.error('โหลดข้อมูลไม่สำเร็จ'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [dateFrom, dateTo])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const handleRangeChange: RangePickerProps['onChange'] = (dates, strings) => {
+    if (!dates) {
+      setDateFrom('')
+      setDateTo('')
+    } else {
+      setDateFrom(strings[0])
+      setDateTo(strings[1])
+    }
+  }
+
+  const handleClear = () => {
+    setDateFrom('')
+    setDateTo('')
+  }
 
   if (loading) {
     return (
@@ -119,19 +148,46 @@ export default function AnalyticsPage() {
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
-      <Title level={4} style={{ marginBottom: 20 }}>📊 วิเคราะห์ข้อมูล</Title>
+      {/* ── Header + Filter ──────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+        <Title level={4} style={{ margin: 0 }}>📊 วิเคราะห์ข้อมูล</Title>
+        <Space wrap>
+          <RangePicker
+            placeholder={['วันที่เริ่มต้น', 'วันที่สิ้นสุด']}
+            format="YYYY-MM-DD"
+            onChange={handleRangeChange}
+            value={dateFrom && dateTo ? [dayjs(dateFrom), dayjs(dateTo)] : null}
+            allowClear
+          />
+          {(dateFrom || dateTo) && (
+            <Button icon={<ReloadOutlined />} onClick={handleClear} size="middle">
+              ดูทั้งหมด
+            </Button>
+          )}
+          {(dateFrom || dateTo) && (
+            <Tag color="blue" style={{ margin: 0, padding: '4px 10px', fontSize: 13 }}>
+              {dateFrom} – {dateTo}
+            </Tag>
+          )}
+        </Space>
+      </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────────────── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {[
-          { title: 'รายได้วันนี้', value: kpi.revenueToday, suffix: 'บาท', icon: <DollarOutlined />, color: '#1677ff' },
-          { title: 'รายได้เดือนนี้', value: kpi.revenueThisMonth, suffix: 'บาท', icon: <DollarOutlined />, color: '#52c41a' },
-          { title: 'รายได้ปีนี้', value: kpi.revenueThisYear, suffix: 'บาท', icon: <DollarOutlined />, color: '#722ed1' },
-          { title: 'ราคาเฉลี่ย/งาน', value: kpi.avgJobValue, suffix: 'บาท', icon: <ToolOutlined />, color: '#fa8c16' },
-          { title: 'งานทั้งหมด', value: kpi.totalJobs, suffix: 'งาน', icon: <CarOutlined />, color: '#13c2c2' },
-          { title: 'งานค้างอยู่', value: kpi.pendingJobs, suffix: 'งาน', icon: kpi.pendingJobs > 5 ? <WarningOutlined /> : <CheckCircleOutlined />, color: kpi.pendingJobs > 5 ? '#ff4d4f' : '#52c41a' },
-        ].map(({ title, value, suffix, icon, color }) => (
-          <Col xs={12} sm={8} md={4} key={title}>
+        {(kpi.isFiltered ? [
+          { title: 'รายได้รวมในช่วง',  value: kpi.totalRevenue,     suffix: 'บาท', icon: <DollarOutlined />, color: '#1677ff' },
+          { title: 'ราคาเฉลี่ย/งาน',   value: kpi.avgJobValue,      suffix: 'บาท', icon: <ToolOutlined  />, color: '#fa8c16' },
+          { title: 'งานในช่วงเวลา',    value: kpi.totalJobs,        suffix: 'งาน', icon: <CarOutlined   />, color: '#13c2c2' },
+          { title: 'งานค้างอยู่',      value: kpi.pendingJobs,      suffix: 'งาน', icon: kpi.pendingJobs > 5 ? <WarningOutlined /> : <CheckCircleOutlined />, color: kpi.pendingJobs > 5 ? '#ff4d4f' : '#52c41a' },
+        ] : [
+          { title: 'รายได้วันนี้',     value: kpi.revenueToday,     suffix: 'บาท', icon: <DollarOutlined />, color: '#1677ff' },
+          { title: 'รายได้เดือนนี้',   value: kpi.revenueThisMonth, suffix: 'บาท', icon: <DollarOutlined />, color: '#52c41a' },
+          { title: 'รายได้ปีนี้',      value: kpi.revenueThisYear,  suffix: 'บาท', icon: <DollarOutlined />, color: '#722ed1' },
+          { title: 'ราคาเฉลี่ย/งาน',   value: kpi.avgJobValue,      suffix: 'บาท', icon: <ToolOutlined  />, color: '#fa8c16' },
+          { title: 'งานทั้งหมด',       value: kpi.totalJobs,        suffix: 'งาน', icon: <CarOutlined   />, color: '#13c2c2' },
+          { title: 'งานค้างอยู่',      value: kpi.pendingJobs,      suffix: 'งาน', icon: kpi.pendingJobs > 5 ? <WarningOutlined /> : <CheckCircleOutlined />, color: kpi.pendingJobs > 5 ? '#ff4d4f' : '#52c41a' },
+        ]).map(({ title, value, suffix, icon, color }) => (
+          <Col xs={12} sm={8} md={kpi.isFiltered ? 6 : 4} key={title}>
             <Card size="small" style={{ borderTop: `3px solid ${color}` }}>
               <Statistic
                 title={<span style={{ fontSize: 12 }}>{title}</span>}
