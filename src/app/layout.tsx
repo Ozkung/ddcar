@@ -14,7 +14,23 @@ const sarabun = Sarabun({
 
 export const metadata: Metadata = {
   title: 'ดีดีช่างยนต์',
-  description: 'ระบบรับรถเข้าซ่อม',
+  description: 'ระบบจัดการงานซ่อมรถยนต์',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'DDReport',
+  },
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 }
 
 export default function RootLayout({
