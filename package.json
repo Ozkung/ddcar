@@ -16,7 +16,8 @@
     "@ant-design/icons": "^5.3.7",
     "@ant-design/nextjs-registry": "^1.0.1",
     "@prisma/client": "^5.15.0",
-    "dayjs": "^1.11.11"
+    "dayjs": "^1.11.11",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "prisma": "^5.15.0",

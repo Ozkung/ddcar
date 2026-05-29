@@ -43,6 +43,9 @@ export default function RootLayout({
               <Link href="/report" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
                 รายงาน
               </Link>
+              <Link href="/analytics" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
+                วิเคราะห์ข้อมูล
+              </Link>
             </nav>
             {children}
           </ConfigProvider>
