@@ -107,6 +107,23 @@ export default function ReportPage() {
     setPageSize(pagination.pageSize ?? 20)
   }
 
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    // Optimistic update
+    setData(prev => prev.map(row => row.id === id ? { ...row, status: newStatus } : row))
+    try {
+      const res = await fetch(`/api/jobs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) throw new Error('update failed')
+      message.success('อัปเดตสถานะเรียบร้อย')
+    } catch {
+      message.error('อัปเดตสถานะไม่สำเร็จ')
+      fetchData() // Revert to server state on error
+    }
+  }
+
   const columns: ColumnsType<JobRow> = [
     {
       title: 'เลขที่ใบงาน',
@@ -140,8 +157,19 @@ export default function ReportPage() {
       title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
-      width: 200,
-      render: (s: string) => <Tag color={STATUS_COLORS[s] ?? 'default'}>{s}</Tag>,
+      width: 220,
+      render: (s: string, record: JobRow) => (
+        <Select
+          value={s}
+          size="small"
+          style={{ width: '100%' }}
+          onChange={(newStatus) => handleStatusChange(record.id, newStatus)}
+          options={STATUSES.map(st => ({
+            label: <Tag color={STATUS_COLORS[st] ?? 'default'} style={{ margin: 0 }}>{st}</Tag>,
+            value: st,
+          }))}
+        />
+      ),
     },
     {
       title: '',

@@ -20,6 +20,8 @@ export async function GET(
 }
 
 /* ─── PATCH /api/jobs/[id] ───────────────────────────────────────────────── */
+// Supports both full update (edit page) and partial update (e.g. status-only).
+// Only fields present in the request body are updated.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -27,53 +29,32 @@ export async function PATCH(
   try {
     const body = await req.json()
 
-    const {
-      date, time, customerName, phone,
-      licensePlate, odometer, symptoms,
-      notes, cause, totalPrice, status,
-    } = body
-
-    // Validate required fields
-    const missing: string[] = []
-    if (!date)             missing.push('date')
-    if (!time)             missing.push('time')
-    if (!customerName)     missing.push('customerName')
-    if (!phone)            missing.push('phone')
-    if (!licensePlate)     missing.push('licensePlate')
-    if (odometer == null)  missing.push('odometer')
-    if (!cause)            missing.push('cause')
-    if (totalPrice == null) missing.push('totalPrice')
-    if (!status)           missing.push('status')
-
-    if (missing.length > 0) {
-      return NextResponse.json(
-        { error: 'Missing required fields', fields: missing },
-        { status: 422 }
-      )
-    }
-
     const existing = await prisma.job.findUnique({ where: { id: params.id } })
     if (!existing) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    const updated = await prisma.job.update({
-      where: { id: params.id },
-      data: {
-        date,
-        time,
-        customerName,
-        phone,
-        licensePlate,
-        odometer: Number(odometer),
-        symptoms: Array.isArray(symptoms) ? symptoms : [],
-        notes: notes || null,
-        cause,
-        totalPrice: Number(totalPrice),
-        status,
-      },
-    })
+    // Build update payload — only include keys that were sent
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: Record<string, any> = {}
 
+    if ('date'         in body) data.date         = String(body.date)
+    if ('time'         in body) data.time         = String(body.time)
+    if ('customerName' in body) data.customerName = String(body.customerName)
+    if ('phone'        in body) data.phone        = String(body.phone)
+    if ('licensePlate' in body) data.licensePlate = String(body.licensePlate)
+    if ('odometer'     in body) data.odometer     = Number(body.odometer)
+    if ('symptoms'     in body) data.symptoms     = Array.isArray(body.symptoms) ? body.symptoms : []
+    if ('notes'        in body) data.notes        = body.notes || null
+    if ('cause'        in body) data.cause        = String(body.cause)
+    if ('totalPrice'   in body) data.totalPrice   = Number(body.totalPrice)
+    if ('status'       in body) data.status       = String(body.status)
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 422 })
+    }
+
+    const updated = await prisma.job.update({ where: { id: params.id }, data })
     return NextResponse.json(updated)
   } catch (err) {
     console.error('[PATCH /api/jobs/[id]]', err)
