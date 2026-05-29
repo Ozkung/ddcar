@@ -7,6 +7,8 @@ RUN npm ci
 # ── Stage 2: build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
+# Install OpenSSL so prisma generate targets the same runtime as the runner stage
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
