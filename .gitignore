@@ -4,3 +4,8 @@ node_modules/
 .env.production
 .env*.local
 *.tsbuildinfo
+
+# TLS certs — generated locally, never commit private keys
+nginx/certs/*.key
+nginx/certs/*.pem
+nginx/certs/ca/
