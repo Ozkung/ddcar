@@ -1,8 +1,10 @@
 'use client'
 
-import { Descriptions, Tag, Typography, Divider } from 'antd'
+import { Descriptions, Tag, Typography, Divider, Button } from 'antd'
 import PrintButton from './PrintButton'
 import ImageGallery from './ImageGallery'
+import Link from 'next/link'
+import { EditOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
 
@@ -61,8 +63,11 @@ export default function ReceiptContent({ job }: { job: JobData }) {
   return (
     <div style={{ maxWidth: 720, margin: '32px auto', padding: '0 16px' }}>
 
-      {/* Print button — hidden when printing via globals.css .no-print */}
-      <div className="no-print" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Action buttons — hidden when printing via globals.css .no-print */}
+      <div className="no-print" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <Link href={`/edit/${job.id}`}>
+          <Button icon={<EditOutlined />}>แก้ไขใบงาน</Button>
+        </Link>
         <PrintButton />
       </div>
 

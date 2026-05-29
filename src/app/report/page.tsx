@@ -5,7 +5,7 @@ import {
   Table, Input, Select, DatePicker, Button, Tag,
   Space, Typography, Tooltip, message
 } from 'antd'
-import { SearchOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
+import { SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { RangePickerProps } from 'antd/es/date-picker'
 
@@ -146,16 +146,25 @@ export default function ReportPage() {
     {
       title: '',
       key: 'actions',
-      width: 50,
+      width: 90,
       render: (_: unknown, record: JobRow) => (
-        <Tooltip title="ดูใบงาน">
-          <Button
-            type="text"
-            icon={<EyeOutlined />}
-            href={`/receipt/${record.id}`}
-            target="_blank"
-          />
-        </Tooltip>
+        <Space size={4}>
+          <Tooltip title="ดูใบงาน">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              href={`/receipt/${record.id}`}
+              target="_blank"
+            />
+          </Tooltip>
+          <Tooltip title="แก้ไข">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              href={`/edit/${record.id}`}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ]
