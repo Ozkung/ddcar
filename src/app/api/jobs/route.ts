@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateJobNo } from '@/lib/jobNo'
+import { auth } from '@/auth'
 
 /* ─── POST /api/jobs ─────────────────────────────────────────────────────── */
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { shopId, id: userId } = session.user
+
     const body = await request.json()
     const {
       date, time, customerName, phone,
@@ -35,6 +40,8 @@ export async function POST(request: NextRequest) {
         cause: String(cause),
         totalPrice: Number(totalPrice),
         status: String(status),
+        shopId,
+        createdBy: userId,
       },
     })
 
@@ -48,6 +55,10 @@ export async function POST(request: NextRequest) {
 /* ─── GET /api/jobs ──────────────────────────────────────────────────────── */
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { shopId } = session.user
+
     const { searchParams } = new URL(request.url)
     const pageRaw     = Number(searchParams.get('page')     || '1')
     const pageSizeRaw = Number(searchParams.get('pageSize') || '20')
@@ -59,7 +70,7 @@ export async function GET(request: NextRequest) {
     const dateTo   = searchParams.get('dateTo')   || ''
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {}
+    const where: any = { shopId }
 
     if (search) {
       where.OR = [

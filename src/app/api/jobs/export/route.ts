@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 function csvEscape(v: unknown): string {
   return `"${String(v ?? '').replace(/"/g, '""')}"`
@@ -7,6 +8,10 @@ function csvEscape(v: unknown): string {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { shopId } = session.user
+
     const { searchParams } = new URL(request.url)
     const search   = searchParams.get('search')   || ''
     const status   = searchParams.get('status')   || ''
@@ -14,7 +19,7 @@ export async function GET(request: NextRequest) {
     const dateTo   = searchParams.get('dateTo')   || ''
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {}
+    const where: any = { shopId }
     if (search) {
       where.OR = [
         { customerName: { contains: search, mode: 'insensitive' } },

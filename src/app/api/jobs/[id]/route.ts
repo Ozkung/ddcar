@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 /* ─── GET /api/jobs/[id] ─────────────────────────────────────────────────── */
 export async function GET(
@@ -7,8 +8,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const job = await prisma.job.findUnique({
-      where: { id: params.id },
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const job = await prisma.job.findFirst({
+      where: { id: params.id, shopId: session.user.shopId },
       include: { images: { select: { id: true, filename: true } } },
     })
     if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -27,12 +31,23 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await req.json()
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { shopId, role, id: userId } = session.user
 
-    const existing = await prisma.job.findUnique({ where: { id: params.id } })
+    const existing = await prisma.job.findFirst({
+      where: { id: params.id, shopId },
+    })
     if (!existing) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
+
+    // TECH can only edit their own jobs
+    if (role === 'TECH' && existing.createdBy !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await req.json()
 
     // Build update payload — only include keys that were sent
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
