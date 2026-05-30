@@ -23,6 +23,7 @@ services:
       DATABASE_URL: postgresql://ddreport:ddreport_pass@postgres:5432/ddreport
       NODE_ENV: production
       UPLOADS_DIR: /uploads
+      AUTH_SECRET: ${AUTH_SECRET}
     volumes:
       - uploads_data:/uploads
     depends_on:
