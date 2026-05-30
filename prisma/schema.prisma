@@ -8,6 +8,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  SHOP_ADMIN
+  LEAD_TECH
+  TECH
+}
+
+model Shop {
+  id        String   @id @default(cuid())
+  refCode   String   @unique
+  name      String
+  parentId  String?
+  parent    Shop?    @relation("ShopBranches", fields: [parentId], references: [id])
+  branches  Shop[]   @relation("ShopBranches")
+  users     User[]
+  jobs      Job[]
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String
+  password    String
+  name        String
+  role        Role
+  isActive    Boolean  @default(true)
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  createdJobs Job[]    @relation("CreatedBy")
+  createdAt   DateTime @default(now())
+
+  @@unique([email, shopId])
+}
+
 model Job {
   id           String   @id @default(cuid())
   jobNo        String   @unique
@@ -22,6 +56,10 @@ model Job {
   cause        String
   totalPrice   Float
   status       String
+  shopId       String?
+  createdBy    String?
+  shop         Shop?    @relation(fields: [shopId], references: [id])
+  creator      User?    @relation("CreatedBy", fields: [createdBy], references: [id])
   createdAt    DateTime @default(now())
   images       Image[]
 }
