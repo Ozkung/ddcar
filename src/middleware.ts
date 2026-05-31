@@ -34,6 +34,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
+  // ── /stock → not TECH ─────────────────────────────────────────────────
+  if (pathname.startsWith('/stock') && role === 'TECH') {
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
   return NextResponse.next()
 })
 

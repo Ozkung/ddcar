@@ -64,6 +64,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       วิเคราะห์ข้อมูล
                     </Link>
                   )}
+                  {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN' || user.role === 'LEAD_TECH') && (
+                    <Link href="/stock" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
+                      คลังอะไหล่
+                    </Link>
+                  )}
                   {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN') && (
                     <Link href="/admin/users" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
                       จัดการผู้ใช้
