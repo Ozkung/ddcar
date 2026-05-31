@@ -24,6 +24,7 @@ services:
       NODE_ENV: production
       UPLOADS_DIR: /uploads
       AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
     volumes:
       - uploads_data:/uploads
     depends_on:
