@@ -43,8 +43,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { toShopId, deliveryDate, note, items } = body
+    const body = await req.json().catch(() => null)
+    if (!body) return Response.json({ error: 'Invalid request body' }, { status: 400 })
+
+    const { toShopId, deliveryDate, note, items, type = 'BRANCH', unitPrice } = body
 
     if (!toShopId || !deliveryDate || !Array.isArray(items) || items.length === 0) {
       return Response.json({ error: 'กรุณากรอกข้อมูลให้ครบ' }, { status: 422 })
@@ -52,14 +54,29 @@ export async function POST(req: NextRequest) {
     if (toShopId === shopId) {
       return Response.json({ error: 'ปลายทางต้องไม่ใช่ร้านตัวเอง' }, { status: 422 })
     }
+    if (type !== 'BRANCH' && type !== 'PARTNER_SALE') {
+      return Response.json({ error: 'type ต้องเป็น BRANCH หรือ PARTNER_SALE' }, { status: 422 })
+    }
 
-    // Fix #6: Validate deliveryDate before use
+    // PARTNER_SALE: validate unitPrice + partner relationship
+    if (type === 'PARTNER_SALE') {
+      const numPrice = Number(unitPrice)
+      if (!Number.isFinite(numPrice) || numPrice <= 0) {
+        return Response.json({ error: 'PARTNER_SALE ต้องระบุราคาต่อหน่วย (unitPrice > 0)' }, { status: 422 })
+      }
+      const partner = await prisma.shopPartner.findFirst({
+        where: { shopId, partnerId: toShopId, status: 'ACCEPTED' },
+      })
+      if (!partner) {
+        return Response.json({ error: 'ร้านนี้ไม่ใช่พันธมิตรของท่าน' }, { status: 422 })
+      }
+    }
+
     const deliveryDateObj = new Date(deliveryDate)
     if (isNaN(deliveryDateObj.getTime())) {
       return Response.json({ error: 'วันที่ส่งถึงไม่ถูกต้อง' }, { status: 422 })
     }
 
-    // Fix #2: Validate per-item quantity
     for (const item of items) {
       const qty = Number(item.quantity)
       if (!Number.isFinite(qty) || qty <= 0) {
@@ -67,7 +84,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate all stock items belong to fromShop
     const stockIds = items.map((i: { stockItemId: string }) => i.stockItemId)
     const stockItems = await prisma.stockItem.findMany({
       where: { id: { in: stockIds }, shopId },
@@ -76,28 +92,37 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'อะไหล่บางรายการไม่พบในร้านนี้' }, { status: 422 })
     }
 
+    // BRANCH → IN_TRANSIT immediately with stock reservation
+    // PARTNER_SALE → PENDING, no stock impact
+    const initialStatus = type === 'BRANCH' ? 'IN_TRANSIT' : 'PENDING'
+
     let transfer
     try {
       transfer = await prisma.$transaction(async (tx) => {
-        // Fix #3: Check availability inside transaction to prevent race condition
-        for (const item of items as { stockItemId: string; quantity: number }[]) {
-          const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
-          if (!current) throw Object.assign(new Error('Not found'), { status: 404 })
-          const available = current.quantity - current.reserved
-          if (available < item.quantity) {
-            throw Object.assign(new Error(`อะไหล่ "${current.name}" มีพร้อมใช้เพียง ${available} ${current.unit}`), { status: 422 })
+        if (type === 'BRANCH') {
+          for (const item of items as { stockItemId: string; quantity: number }[]) {
+            const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+            if (!current) throw Object.assign(new Error('Not found'), { status: 404 })
+            const available = current.quantity - current.reserved
+            if (available < item.quantity) {
+              throw Object.assign(
+                new Error(`อะไหล่ "${current.name}" มีพร้อมใช้เพียง ${available} ${current.unit}`),
+                { status: 422 }
+              )
+            }
           }
         }
 
         const created = await tx.stockTransfer.create({
           data: {
-            type: 'BRANCH',
+            type,
             fromShopId: shopId,
             toShopId,
-            status: 'IN_TRANSIT',
+            status: initialStatus,
             deliveryDate: deliveryDateObj,
             note: note || null,
             requestedBy: userId,
+            unitPrice: type === 'PARTNER_SALE' ? Number(unitPrice) : null,
             items: {
               create: items.map((i: { stockItemId: string; quantity: number }) => ({
                 stockItemId: i.stockItemId,
@@ -108,12 +133,13 @@ export async function POST(req: NextRequest) {
           include: { items: true },
         })
 
-        // Soft reserve on fromShop items
-        for (const item of items as { stockItemId: string; quantity: number }[]) {
-          await tx.stockItem.update({
-            where: { id: item.stockItemId },
-            data: { reserved: { increment: item.quantity } },
-          })
+        if (type === 'BRANCH') {
+          for (const item of items as { stockItemId: string; quantity: number }[]) {
+            await tx.stockItem.update({
+              where: { id: item.stockItemId },
+              data: { reserved: { increment: item.quantity } },
+            })
+          }
         }
 
         return created
