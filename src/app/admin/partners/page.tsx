@@ -8,7 +8,7 @@ export default async function PartnersPage() {
   if (!session) redirect('/login')
 
   const { role, shopId } = session.user
-  if (role === 'TECH') redirect('/')
+  if (role === 'TECH' || role === 'LEAD_TECH') redirect('/')
 
   const myShop = await prisma.shop.findUnique({
     where: { id: shopId },

@@ -54,8 +54,8 @@ export default function PartnersTable({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refCode: refCodeInput.trim().toUpperCase() }),
       })
-      const data = await res.json()
-      if (!res.ok) { message.error(data.error); return }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { message.error(data.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success(`ส่งคำขอไปยัง ${data.targetName} สำเร็จ`)
       setRefCodeInput('')
       window.location.reload()
@@ -72,7 +72,7 @@ export default function PartnersTable({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
-      if (!res.ok) { const d = await res.json(); message.error(d.error); return }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); message.error(d.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success('รับเป็นพันธมิตรสำเร็จ')
       window.location.reload()
     } finally {
@@ -84,7 +84,7 @@ export default function PartnersTable({
     setActionId(id)
     try {
       const res = await fetch(`/api/admin/partners/${id}`, { method: 'DELETE' })
-      if (!res.ok) { const d = await res.json(); message.error(d.error); return }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); message.error(d.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success('ลบพันธมิตรสำเร็จ')
       window.location.reload()
     } finally {
@@ -101,8 +101,8 @@ export default function PartnersTable({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shopAId, shopBId }),
       })
-      const data = await res.json()
-      if (!res.ok) { message.error(data.error); return }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { message.error(data.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success('เพิ่มพันธมิตรสำเร็จ')
       setDirectOpen(false)
       setShopAId(undefined)
@@ -322,7 +322,11 @@ export default function PartnersTable({
           <Button
             size="small"
             icon={<CopyOutlined />}
-            onClick={() => { navigator.clipboard.writeText(myRefCode); message.success('คัดลอกแล้ว') }}
+            onClick={() =>
+              navigator.clipboard.writeText(myRefCode)
+                .then(() => message.success('คัดลอกแล้ว'))
+                .catch(() => message.error('ไม่สามารถคัดลอกได้'))
+            }
           />
         </div>
         <Text type="secondary" style={{ fontSize: 12 }}>แชร์ code นี้ให้ร้านที่ต้องการเชื่อมเป็นพันธมิตร</Text>
