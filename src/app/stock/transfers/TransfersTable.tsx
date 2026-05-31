@@ -137,7 +137,7 @@ export default function TransfersTable({ branchTransfers, partnerTransfers, curr
                 ยืนยันรับ
               </Button>
               {r.status === 'IN_TRANSIT' && (
-                <Button size="small" danger onClick={() => setDisputeId(r.id)}>ร้องขอ</Button>
+                <Button size="small" danger disabled={actionLoading} onClick={() => setDisputeId(r.id)}>ร้องขอ</Button>
               )}
             </Space>
           )

@@ -11,7 +11,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 const { Title } = Typography
 
 interface Shop { id: string; name: string }
-interface PartnerRecord { id: string; partner: { id: string; name: string } }
+interface PartnerRecord { id: string; partner: { id: string; name: string }; shop?: { id: string; name: string } }
 interface StockItem { id: string; name: string; unit: string; availableQty: number }
 interface PartRow { stockItemId: string; quantity: number }
 
@@ -31,10 +31,21 @@ export default function NewTransferPage() {
     fetch('/api/admin/partners')
       .then(r => r.json())
       .then((data: { accepted?: PartnerRecord[] } | PartnerRecord[]) => {
-        // API returns { accepted, incoming, outgoing } for SHOP_ADMIN
-        // or { accepted, pending } for SUPER_ADMIN
         const records = Array.isArray(data) ? data : (data.accepted ?? [])
-        setPartners(records.map((r: PartnerRecord) => r.partner).filter(Boolean))
+        // Extract both sides — SUPER_ADMIN deduped records have shop + partner fields
+        const seen = new Set<string>()
+        const allShops: Shop[] = []
+        for (const r of records) {
+          if (r.partner && !seen.has(r.partner.id)) {
+            seen.add(r.partner.id)
+            allShops.push(r.partner)
+          }
+          if ((r as { shop?: Shop }).shop && !seen.has((r as { shop?: Shop }).shop!.id)) {
+            seen.add((r as { shop?: Shop }).shop!.id)
+            allShops.push((r as { shop?: Shop }).shop!)
+          }
+        }
+        setPartners(allShops)
       })
     fetch('/api/stock').then(r => r.json()).then(setStockItems)
   }, [])
@@ -57,8 +68,8 @@ export default function NewTransferPage() {
       setError('กรุณาเลือกอะไหล่อย่างน้อย 1 รายการ')
       return
     }
-    if (transferType === 'PARTNER_SALE' && !values.unitPrice) {
-      setError('กรุณาระบุราคาต่อหน่วยสำหรับการขายพันธมิตร')
+    if (transferType === 'PARTNER_SALE' && !(values.unitPrice && values.unitPrice > 0)) {
+      setError('ราคาต่อหน่วยต้องมากกว่า 0')
       return
     }
     setLoading(true)

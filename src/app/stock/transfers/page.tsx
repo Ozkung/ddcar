@@ -39,7 +39,7 @@ export default async function TransfersPage() {
         branchTransfers={branchTransfers}
         partnerTransfers={partnerTransfers}
         currentShopId={shopId}
-        canManage={true}
+        canManage={role === 'SUPER_ADMIN' || role === 'SHOP_ADMIN'}
       />
     </div>
   )
