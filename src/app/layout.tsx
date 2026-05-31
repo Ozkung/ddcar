@@ -74,6 +74,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       จัดการผู้ใช้
                     </Link>
                   )}
+                  {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN') && (
+                    <Link href="/admin/partners" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
+                      จัดการพันธมิตร
+                    </Link>
+                  )}
                   <div style={{ marginLeft: 'auto' }}>
                     <UserNav name={user.name!} role={user.role} shopName={user.shopName} />
                   </div>
