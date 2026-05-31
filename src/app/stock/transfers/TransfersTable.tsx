@@ -28,7 +28,7 @@ interface Transfer {
   fromShop: { name: string }
   toShop: { name: string }
   status: string
-  deliveryDate: string
+  deliveryDate: string | Date
   items: TransferItem[]
   disputes: { message: string }[]
 }
