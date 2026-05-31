@@ -36,6 +36,8 @@ model Shop {
   stockItems    StockItem[]
   transfersFrom StockTransfer[] @relation("TransferFrom")
   transfersTo   StockTransfer[] @relation("TransferTo")
+  shopPartners  ShopPartner[]   @relation("ShopPartners")
+  partnerOf     ShopPartner[]   @relation("PartnerShops")
   createdAt     DateTime        @default(now())
 }
 
@@ -178,4 +180,16 @@ model TransferDispute {
   createdAt  DateTime      @default(now())
 
   @@index([transferId])
+}
+
+model ShopPartner {
+  id        String   @id @default(cuid())
+  shopId    String
+  partnerId String
+  shop      Shop     @relation("ShopPartners", fields: [shopId], references: [id])
+  partner   Shop     @relation("PartnerShops", fields: [partnerId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, partnerId])
+  @@index([shopId])
 }
