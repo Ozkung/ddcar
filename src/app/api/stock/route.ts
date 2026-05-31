@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name, category, unit, quantity, costPrice, supplierPhone, warrantyStart, warrantyEnd } = body
 
-    if (!name?.trim() || !category?.trim() || !unit?.trim() || quantity == null || costPrice == null) {
+    if (!name?.trim() || !category?.trim() || !unit?.trim() || !Number.isFinite(Number(quantity)) || !Number.isFinite(Number(costPrice))) {
       return NextResponse.json({ error: 'กรุณากรอกข้อมูลให้ครบ' }, { status: 422 })
     }
 

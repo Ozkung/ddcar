@@ -18,34 +18,42 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const item = await prisma.stockItem.findFirst({ where: { id: params.id, shopId } })
-    if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
     const body = await req.json()
     const { delta, reason } = body
 
-    if (delta == null || isNaN(Number(delta)) || Number(delta) === 0) {
+    const numDelta = Number(delta)
+
+    // validate delta
+    if (!Number.isFinite(numDelta) || numDelta === 0) {
       return NextResponse.json({ error: 'delta ต้องเป็นตัวเลขที่ไม่ใช่ 0' }, { status: 422 })
     }
     if (!reason || !VALID_REASONS.includes(String(reason))) {
       return NextResponse.json({ error: `reason ต้องเป็น: ${VALID_REASONS.join(', ')}` }, { status: 422 })
     }
 
-    const numDelta = Number(delta)
-    const newQty = item.quantity + numDelta
-    if (newQty < 0) {
-      return NextResponse.json({ error: 'จำนวนคงเหลือจะติดลบ' }, { status: 422 })
+    let updated
+    try {
+      updated = await prisma.$transaction(async (tx) => {
+        const current = await tx.stockItem.findFirst({ where: { id: params.id, shopId } })
+        if (!current) throw Object.assign(new Error('Not found'), { status: 404 })
+        if (current.quantity + numDelta < 0) {
+          throw Object.assign(new Error('จำนวนคงเหลือจะติดลบ'), { status: 422 })
+        }
+        const result = await tx.stockItem.update({
+          where: { id: params.id },
+          data: { quantity: { increment: numDelta } },
+        })
+        await tx.stockAdjustLog.create({
+          data: { stockItemId: params.id, delta: numDelta, reason: String(reason), userId },
+        })
+        return result
+      })
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 404) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      if (e.status === 422) return NextResponse.json({ error: e.message }, { status: 422 })
+      throw err
     }
-
-    const [updated] = await prisma.$transaction([
-      prisma.stockItem.update({
-        where: { id: params.id },
-        data: { quantity: { increment: numDelta } },
-      }),
-      prisma.stockAdjustLog.create({
-        data: { stockItemId: params.id, delta: numDelta, reason: String(reason), userId },
-      }),
-    ])
 
     return NextResponse.json(updated)
   } catch (err) {

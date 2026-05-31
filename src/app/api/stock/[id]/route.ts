@@ -53,7 +53,11 @@ export async function PATCH(
     if ('name'          in body) data.name          = String(body.name).trim()
     if ('category'      in body) data.category      = String(body.category).trim()
     if ('unit'          in body) data.unit          = String(body.unit).trim()
-    if ('costPrice'     in body) data.costPrice     = Number(body.costPrice)
+    if ('costPrice'     in body) {
+      const n = Number(body.costPrice)
+      if (!Number.isFinite(n)) return NextResponse.json({ error: 'costPrice ต้องเป็นตัวเลข' }, { status: 422 })
+      data.costPrice = n
+    }
     if ('supplierPhone' in body) data.supplierPhone = body.supplierPhone || null
     if ('warrantyStart' in body) data.warrantyStart = body.warrantyStart ? new Date(body.warrantyStart) : null
     if ('warrantyEnd'   in body) data.warrantyEnd   = body.warrantyEnd   ? new Date(body.warrantyEnd)   : null
