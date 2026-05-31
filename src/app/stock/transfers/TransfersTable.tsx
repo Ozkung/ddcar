@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Table, Tag, Button, Modal, Input, Space, message } from 'antd'
+import { Table, Tag, Button, Modal, Input, Space, message, Typography } from 'antd'
 import dayjs from 'dayjs'
+
+const { Title } = Typography
 
 const STATUS_COLORS: Record<string, string> = {
   IN_TRANSIT: 'blue',
@@ -137,6 +139,7 @@ export default function TransfersTable({ transfers, currentShopId, canManage }: 
 
   return (
     <>
+      <Title level={4} style={{ marginBottom: 16 }}>ประวัติการโอนอะไหล่</Title>
       <Table dataSource={transfers} columns={columns} rowKey="id" pagination={{ pageSize: 20 }} size="small" />
       <Modal
         open={!!disputeId}

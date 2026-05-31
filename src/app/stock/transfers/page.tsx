@@ -1,10 +1,7 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { Typography } from 'antd'
 import TransfersTable from './TransfersTable'
-
-const { Title } = Typography
 
 export default async function TransfersPage() {
   const session = await auth()
@@ -26,7 +23,6 @@ export default async function TransfersPage() {
 
   return (
     <div style={{ padding: '1.5rem 2rem' }}>
-      <Title level={4} style={{ marginBottom: 16 }}>ประวัติการโอนอะไหล่</Title>
       <TransfersTable transfers={transfers} currentShopId={shopId} canManage={true} />
     </div>
   )

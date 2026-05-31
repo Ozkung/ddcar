@@ -1,8 +1,11 @@
 'use client'
 
-import { Table, Tag, Button, Space } from 'antd'
+import { Table, Tag, Button, Space, Typography } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import dayjs from 'dayjs'
+
+const { Title } = Typography
 
 interface StockItemRow {
   id: string
@@ -110,12 +113,32 @@ export default function StockTable({ items, canEdit }: Props) {
   ]
 
   return (
-    <Table
-      dataSource={items}
-      columns={columns}
-      rowKey="id"
-      pagination={false}
-      size="small"
-    />
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>คลังอะไหล่</Title>
+        <Space>
+          {canEdit && (
+            <Link href="/stock/transfers/new">
+              <Button>โอนอะไหล่</Button>
+            </Link>
+          )}
+          <Link href="/stock/transfers">
+            <Button>ประวัติการโอน</Button>
+          </Link>
+          {canEdit && (
+            <Link href="/stock/new">
+              <Button type="primary" icon={<PlusOutlined />}>เพิ่มอะไหล่</Button>
+            </Link>
+          )}
+        </Space>
+      </div>
+      <Table
+        dataSource={items}
+        columns={columns}
+        rowKey="id"
+        pagination={false}
+        size="small"
+      />
+    </>
   )
 }
