@@ -15,34 +15,49 @@ export async function POST(request: NextRequest) {
       date, time, customerName, phone,
       licensePlate, odometer, symptoms,
       notes, cause, totalPrice, status,
+      assignedTo, parts,
     } = body
 
     const missing = [date, time, customerName, phone, licensePlate, odometer, cause, totalPrice, status]
       .some(v => v === undefined || v === null || v === '')
-
     if (missing) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 422 })
     }
 
     const jobNo = await generateJobNo(date as string)
 
-    const job = await prisma.job.create({
-      data: {
-        jobNo,
-        date: String(date),
-        time: String(time),
-        customerName: String(customerName),
-        phone: String(phone),
-        licensePlate: String(licensePlate),
-        odometer: Number(odometer),
-        symptoms: Array.isArray(symptoms) ? symptoms : [],
-        notes: notes ? String(notes) : null,
-        cause: String(cause),
-        totalPrice: Number(totalPrice),
-        status: String(status),
-        shopId,
-        createdBy: userId,
-      },
+    const job = await prisma.$transaction(async (tx) => {
+      const created = await tx.job.create({
+        data: {
+          jobNo,
+          date: String(date),
+          time: String(time),
+          customerName: String(customerName),
+          phone: String(phone),
+          licensePlate: String(licensePlate),
+          odometer: Number(odometer),
+          symptoms: Array.isArray(symptoms) ? symptoms : [],
+          notes: notes ? String(notes) : null,
+          cause: String(cause),
+          totalPrice: Number(totalPrice),
+          status: String(status),
+          shopId,
+          createdBy: userId,
+          assignedTo: assignedTo || null,
+        },
+      })
+
+      if (Array.isArray(parts) && parts.length > 0) {
+        await tx.jobPart.createMany({
+          data: (parts as { stockItemId: string; quantity: number }[]).map(p => ({
+            jobId: created.id,
+            stockItemId: p.stockItemId,
+            quantity: p.quantity,
+          })),
+        })
+      }
+
+      return created
     })
 
     return NextResponse.json({ id: job.id, jobNo: job.jobNo }, { status: 201 })
