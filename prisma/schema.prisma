@@ -186,10 +186,12 @@ model ShopPartner {
   id        String   @id @default(cuid())
   shopId    String
   partnerId String
+  status    String   @default("PENDING")
   shop      Shop     @relation("ShopPartners", fields: [shopId], references: [id])
   partner   Shop     @relation("PartnerShops", fields: [partnerId], references: [id])
   createdAt DateTime @default(now())
 
   @@unique([shopId, partnerId])
   @@index([shopId])
+  @@index([partnerId])
 }
