@@ -106,10 +106,13 @@ export async function PATCH(
 
       try {
         await prisma.$transaction(async (tx) => {
-          await tx.stockTransfer.update({
-            where: { id: params.id },
+          const claimed = await tx.stockTransfer.updateMany({
+            where: { id: params.id, status: { in: ['IN_TRANSIT', 'DISPUTED'] } },
             data: { status: 'DELIVERED', receivedAt: new Date() },
           })
+          if (claimed.count === 0) {
+            throw Object.assign(new Error('transfer ถูกยืนยันหรืออยู่ในสถานะที่ไม่สามารถรับได้แล้ว'), { status: 422 })
+          }
 
           for (const item of transfer.items) {
             const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
