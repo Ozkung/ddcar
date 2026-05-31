@@ -23,7 +23,8 @@ export async function PATCH(
       return Response.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body) return Response.json({ error: 'Invalid request body' }, { status: 400 })
     const { status } = body
 
     // ── PARTNER_SALE: destination approves → IN_TRANSIT + soft reserve ──────
@@ -40,10 +41,14 @@ export async function PATCH(
 
       try {
         await prisma.$transaction(async (tx) => {
-          await tx.stockTransfer.update({
-            where: { id: params.id },
+          // Atomic claim: only succeeds if status is still PENDING
+          const updated = await tx.stockTransfer.updateMany({
+            where: { id: params.id, status: 'PENDING' },
             data: { status: 'IN_TRANSIT' },
           })
+          if (updated.count === 0) {
+            throw Object.assign(new Error('transfer ถูกอนุมัติหรือยกเลิกไปแล้ว'), { status: 422 })
+          }
           for (const item of transfer.items) {
             const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
             if (!current || current.quantity - current.reserved < item.quantity) {
@@ -183,8 +188,8 @@ export async function PATCH(
       if (transfer.fromShopId !== shopId && role !== 'SUPER_ADMIN') {
         return Response.json({ error: 'เฉพาะต้นทางเท่านั้นที่ยกเลิกได้' }, { status: 403 })
       }
-      if (transfer.status === 'DELIVERED') {
-        return Response.json({ error: 'ไม่สามารถยกเลิก transfer ที่ส่งแล้ว' }, { status: 422 })
+      if (transfer.status === 'DELIVERED' || transfer.status === 'REJECTED' || transfer.status === 'CANCELLED') {
+        return Response.json({ error: 'ไม่สามารถยกเลิก transfer ในสถานะนี้' }, { status: 422 })
       }
 
       await prisma.$transaction(async (tx) => {
