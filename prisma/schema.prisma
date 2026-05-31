@@ -131,6 +131,8 @@ model StockAdjustLog {
   reason      String
   userId      String
   createdAt   DateTime  @default(now())
+
+  @@index([stockItemId])
 }
 
 model StockTransfer {
@@ -150,6 +152,9 @@ model StockTransfer {
   disputes     TransferDispute[]
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+
+  @@index([fromShopId])
+  @@index([toShopId])
 }
 
 model StockTransferItem {
@@ -159,13 +164,18 @@ model StockTransferItem {
   stockItemId String
   stockItem   StockItem     @relation(fields: [stockItemId], references: [id])
   quantity    Float
+
+  @@index([transferId])
+  @@index([stockItemId])
 }
 
 model TransferDispute {
   id         String        @id @default(cuid())
   transferId String
-  transfer   StockTransfer @relation(fields: [transferId], references: [id])
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
   raisedBy   String
   message    String
   createdAt  DateTime      @default(now())
+
+  @@index([transferId])
 }
