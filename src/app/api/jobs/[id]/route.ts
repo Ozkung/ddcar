@@ -13,7 +13,12 @@ export async function GET(
 
     const job = await prisma.job.findFirst({
       where: { id: params.id, shopId: session.user.shopId },
-      include: { images: { select: { id: true, filename: true } } },
+      include: {
+        images: { select: { id: true, filename: true } },
+        jobParts: {
+          include: { stockItem: { select: { id: true, name: true, category: true, unit: true } } },
+        },
+      },
     })
     if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(job)
