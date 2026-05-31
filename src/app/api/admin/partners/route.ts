@@ -32,7 +32,7 @@ export async function GET() {
     // SHOP_ADMIN / LEAD_TECH: own view
     const myShop = await prisma.shop.findUnique({ where: { id: shopId }, select: { refCode: true } })
 
-    const [accepted, incoming] = await Promise.all([
+    const [accepted, incoming, outgoing] = await Promise.all([
       // Partnerships I initiated that are ACCEPTED
       prisma.shopPartner.findMany({
         where: { shopId, status: 'ACCEPTED' },
@@ -45,9 +45,15 @@ export async function GET() {
         include: { shop: { select: { id: true, name: true, refCode: true } } },
         orderBy: { createdAt: 'desc' },
       }),
+      // Invites I sent that are still PENDING
+      prisma.shopPartner.findMany({
+        where: { shopId, status: 'PENDING' },
+        include: { partner: { select: { id: true, name: true, refCode: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
     ])
 
-    return Response.json({ myRefCode: myShop?.refCode, accepted, incoming })
+    return Response.json({ myRefCode: myShop?.refCode, accepted, incoming, outgoing })
   } catch (err) {
     console.error('[GET /api/admin/partners]', err)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
@@ -76,8 +82,13 @@ export async function POST(req: NextRequest) {
       const count = await prisma.shop.count({ where: { id: { in: [shopAId, shopBId] } } })
       if (count !== 2) return Response.json({ error: 'ไม่พบร้านที่เลือก' }, { status: 422 })
 
-      const existing = await prisma.shopPartner.findUnique({
-        where: { shopId_partnerId: { shopId: shopAId, partnerId: shopBId } },
+      const existing = await prisma.shopPartner.findFirst({
+        where: {
+          OR: [
+            { shopId: shopAId, partnerId: shopBId },
+            { shopId: shopBId, partnerId: shopAId },
+          ],
+        },
       })
       if (existing) return Response.json({ error: 'เป็นพันธมิตรกันอยู่แล้ว' }, { status: 422 })
 
@@ -124,7 +135,11 @@ export async function POST(req: NextRequest) {
     })
 
     return Response.json({ ok: true, targetName: targetShop.name }, { status: 201 })
-  } catch (err) {
+  } catch (err: unknown) {
+    const e = err as { code?: string }
+    if (e.code === 'P2002') {
+      return Response.json({ error: 'มีคำขอหรือความสัมพันธ์นี้อยู่แล้ว' }, { status: 422 })
+    }
     console.error('[POST /api/admin/partners]', err)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }

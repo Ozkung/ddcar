@@ -20,25 +20,26 @@ export async function PATCH(
 
     // Must be the target (or SUPER_ADMIN) to accept
     if (role !== 'SUPER_ADMIN' && record.partnerId !== shopId) {
-      return Response.json({ error: 'เฉพาะผู้รับคำขอเท่านั้นที่อนุมัติได้' }, { status: 403 })
+      return Response.json({ error: 'Not found' }, { status: 404 })
     }
     if (record.status !== 'PENDING') {
       return Response.json({ error: 'รับได้เฉพาะคำขอที่ยังรออยู่ (PENDING) เท่านั้น' }, { status: 422 })
     }
 
-    // Accept: update this row + create reverse ACCEPTED row
-    await prisma.$transaction([
-      prisma.shopPartner.update({
-        where: { id: record.id },
-        data: { status: 'ACCEPTED' },
-      }),
-      prisma.shopPartner.create({
+    // Accept: re-check inside transaction to prevent double-accept TOCTOU
+    await prisma.$transaction(async (tx) => {
+      const fresh = await tx.shopPartner.findUnique({ where: { id: record.id } })
+      if (!fresh || fresh.status !== 'PENDING') return
+      await tx.shopPartner.update({ where: { id: record.id }, data: { status: 'ACCEPTED' } })
+      await tx.shopPartner.create({
         data: { shopId: record.partnerId, partnerId: record.shopId, status: 'ACCEPTED' },
-      }),
-    ])
+      })
+    })
 
     return Response.json({ ok: true })
-  } catch (err) {
+  } catch (err: unknown) {
+    const e = err as { code?: string }
+    if (e.code === 'P2002') return Response.json({ ok: true }) // already accepted concurrently
     console.error('[PATCH /api/admin/partners/[id]]', err)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
