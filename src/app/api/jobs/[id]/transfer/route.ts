@@ -107,3 +107,109 @@ export async function POST(
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { role, shopId } = session.user
+
+    const job = await prisma.job.findUnique({
+      where: { id: params.id },
+      include: { transfer: true },
+    })
+    if (!job?.transfer) return Response.json({ error: 'ไม่พบ transfer' }, { status: 404 })
+    const transfer = job.transfer
+
+    const body = await req.json().catch(() => null)
+    if (!body) return Response.json({ error: 'Invalid request body' }, { status: 400 })
+    const { action } = body as { action: string }
+
+    // ── ACCEPT ─────────────────────────────────────────────────────────────────
+    if (action === 'accept') {
+      if (transfer.toShopId !== shopId) {
+        return Response.json({ error: 'เฉพาะร้านปลายทางเท่านั้นที่รับงานได้' }, { status: 403 })
+      }
+      if (role !== 'SUPER_ADMIN' && role !== 'SHOP_ADMIN' && role !== 'LEAD_TECH') {
+        return Response.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      if (transfer.status !== 'PENDING') {
+        return Response.json({ error: 'รับได้เฉพาะ transfer ที่ PENDING เท่านั้น' }, { status: 422 })
+      }
+      await prisma.$transaction([
+        prisma.jobTransfer.update({
+          where: { id: transfer.id },
+          data: { status: 'ACCEPTED' },
+        }),
+        prisma.job.update({
+          where: { id: params.id },
+          data: { status: 'ถ่ายงานออก' },
+        }),
+      ])
+      return Response.json({ ok: true })
+    }
+
+    // ── REJECT ─────────────────────────────────────────────────────────────────
+    if (action === 'reject') {
+      if (transfer.toShopId !== shopId) {
+        return Response.json({ error: 'เฉพาะร้านปลายทางเท่านั้นที่ปฏิเสธได้' }, { status: 403 })
+      }
+      if (role !== 'SUPER_ADMIN' && role !== 'SHOP_ADMIN' && role !== 'LEAD_TECH') {
+        return Response.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      if (transfer.status !== 'PENDING') {
+        return Response.json({ error: 'ปฏิเสธได้เฉพาะ transfer ที่ PENDING เท่านั้น' }, { status: 422 })
+      }
+      await prisma.$transaction([
+        prisma.jobTransfer.update({
+          where: { id: transfer.id },
+          data: { status: 'REJECTED' },
+        }),
+        prisma.job.update({
+          where: { id: params.id },
+          data: { status: transfer.previousJobStatus },
+        }),
+      ])
+      return Response.json({ ok: true })
+    }
+
+    // ── CANCEL ─────────────────────────────────────────────────────────────────
+    if (action === 'cancel') {
+      if (transfer.fromShopId !== shopId && role !== 'SUPER_ADMIN') {
+        return Response.json({ error: 'เฉพาะร้านต้นทางเท่านั้นที่ยกเลิกได้' }, { status: 403 })
+      }
+      if (role !== 'SUPER_ADMIN' && role !== 'SHOP_ADMIN') {
+        return Response.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      if (transfer.status !== 'PENDING') {
+        return Response.json(
+          { error: 'ยกเลิกได้เฉพาะ transfer ที่ PENDING เท่านั้น (ยกเลิกหลัง ACCEPTED ไม่ได้)' },
+          { status: 422 }
+        )
+      }
+      await prisma.$transaction([
+        prisma.jobTransfer.update({
+          where: { id: transfer.id },
+          data: { status: 'CANCELLED' },
+        }),
+        prisma.job.update({
+          where: { id: params.id },
+          data: { status: transfer.previousJobStatus },
+        }),
+      ])
+      return Response.json({ ok: true })
+    }
+
+    return Response.json(
+      { error: 'action ต้องเป็น accept, reject, หรือ cancel' },
+      { status: 422 }
+    )
+  } catch (err) {
+    console.error('[PATCH /api/jobs/[id]/transfer]', err)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
