@@ -97,7 +97,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'No fields to update' }, { status: 422 })
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
+    let updated
+    try {
+    updated = await prisma.$transaction(async (tx) => {
       // Update parts if applicable
       if (newParts !== null) {
         await tx.jobPart.deleteMany({ where: { jobId: params.id } })
@@ -119,21 +121,43 @@ export async function PATCH(
 
       if (stockAction === 'reserve') {
         for (const part of partsToProcess) {
-          await tx.stockItem.update({
-            where: { id: part.stockItemId },
-            data: { reserved: { increment: part.quantity } },
-          })
+          const affected = await tx.$executeRaw`
+            UPDATE "StockItem"
+            SET reserved = reserved + ${part.quantity}
+            WHERE id = ${part.stockItemId}
+              AND "shopId" = ${shopId}
+              AND (quantity - reserved) >= ${part.quantity}
+          `
+          if (affected === 0) {
+            const item = await tx.stockItem.findFirst({ where: { id: part.stockItemId, shopId } })
+            if (!item) throw Object.assign(new Error('ไม่พบอะไหล่นี้ในร้าน'), { status: 404 })
+            const avail = item.quantity - item.reserved
+            throw Object.assign(
+              new Error(`อะไหล่ "${item.name}" มีพร้อมใช้เพียง ${avail} ${item.unit}`),
+              { status: 422 }
+            )
+          }
         }
         data.stockStatus = 'reserved'
       } else if (stockAction === 'deduct') {
         for (const part of partsToProcess) {
-          await tx.stockItem.update({
-            where: { id: part.stockItemId },
-            data: {
-              quantity: { decrement: part.quantity },
-              reserved: { decrement: part.quantity },
-            },
-          })
+          const affected = await tx.$executeRaw`
+            UPDATE "StockItem"
+            SET quantity = quantity - ${part.quantity},
+                reserved = reserved - ${part.quantity}
+            WHERE id = ${part.stockItemId}
+              AND "shopId" = ${shopId}
+              AND quantity >= ${part.quantity}
+              AND reserved >= ${part.quantity}
+          `
+          if (affected === 0) {
+            const item = await tx.stockItem.findFirst({ where: { id: part.stockItemId, shopId } })
+            if (!item) throw Object.assign(new Error('ไม่พบอะไหล่นี้ในร้าน'), { status: 404 })
+            throw Object.assign(
+              new Error(`อะไหล่ "${item.name}" จำนวนในคลังหรือจองไม่พอสำหรับการตัดยอด`),
+              { status: 422 }
+            )
+          }
           await tx.stockAdjustLog.create({
             data: {
               stockItemId: part.stockItemId,
@@ -146,10 +170,18 @@ export async function PATCH(
         data.stockStatus = 'deducted'
       } else if (stockAction === 'release') {
         for (const part of partsToProcess) {
-          await tx.stockItem.update({
-            where: { id: part.stockItemId },
-            data: { reserved: { decrement: part.quantity } },
-          })
+          // Only release stock that belongs to this shop
+          const affected = await tx.$executeRaw`
+            UPDATE "StockItem"
+            SET reserved = reserved - ${part.quantity}
+            WHERE id = ${part.stockItemId}
+              AND "shopId" = ${shopId}
+              AND reserved >= ${part.quantity}
+          `
+          if (affected === 0) {
+            // If item not found in shop or reserved underflows, skip silently
+            // (job cancellation should not fail due to stale stock state)
+          }
         }
         data.stockStatus = 'none'
       }
@@ -162,6 +194,12 @@ export async function PATCH(
         },
       })
     })
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string }
+      if (e.status === 404) return NextResponse.json({ error: e.message ?? 'Not found' }, { status: 404 })
+      if (e.status === 422) return NextResponse.json({ error: e.message }, { status: 422 })
+      throw err
+    }
 
     return NextResponse.json(updated)
   } catch (err) {

@@ -99,20 +99,6 @@ export async function POST(req: NextRequest) {
     let transfer
     try {
       transfer = await prisma.$transaction(async (tx) => {
-        if (type === 'BRANCH') {
-          for (const item of items as { stockItemId: string; quantity: number }[]) {
-            const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
-            if (!current) throw Object.assign(new Error('Not found'), { status: 404 })
-            const available = current.quantity - current.reserved
-            if (available < item.quantity) {
-              throw Object.assign(
-                new Error(`อะไหล่ "${current.name}" มีพร้อมใช้เพียง ${available} ${current.unit}`),
-                { status: 422 }
-              )
-            }
-          }
-        }
-
         const created = await tx.stockTransfer.create({
           data: {
             type,
@@ -135,10 +121,21 @@ export async function POST(req: NextRequest) {
 
         if (type === 'BRANCH') {
           for (const item of items as { stockItemId: string; quantity: number }[]) {
-            await tx.stockItem.update({
-              where: { id: item.stockItemId },
-              data: { reserved: { increment: item.quantity } },
-            })
+            const affected = await tx.$executeRaw`
+              UPDATE "StockItem"
+              SET reserved = reserved + ${item.quantity}
+              WHERE id = ${item.stockItemId}
+                AND "shopId" = ${shopId}
+                AND (quantity - reserved) >= ${item.quantity}
+            `
+            if (affected === 0) {
+              const current = await tx.stockItem.findUnique({ where: { id: item.stockItemId } })
+              const avail = current ? current.quantity - current.reserved : 0
+              throw Object.assign(
+                new Error(`อะไหล่ "${current?.name ?? item.stockItemId}" มีพร้อมใช้เพียง ${avail} ${current?.unit ?? ''}`),
+                { status: 422 }
+              )
+            }
           }
         }
 

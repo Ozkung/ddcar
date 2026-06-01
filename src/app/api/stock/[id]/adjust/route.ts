@@ -39,6 +39,12 @@ export async function POST(
         if (current.quantity + numDelta < 0) {
           throw Object.assign(new Error('จำนวนคงเหลือจะติดลบ'), { status: 422 })
         }
+        if (current.quantity + numDelta < current.reserved) {
+          throw Object.assign(
+            new Error(`ไม่สามารถลดได้ เนื่องจากมีของจอง ${current.reserved} ${current.unit} อยู่`),
+            { status: 422 }
+          )
+        }
         const result = await tx.stockItem.update({
           where: { id: params.id },
           data: { quantity: { increment: numDelta } },
