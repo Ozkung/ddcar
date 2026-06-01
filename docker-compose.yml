@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: ddreport
       POSTGRES_PASSWORD: ddreport_pass
       POSTGRES_DB: ddreport
+    ports:
+      - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,6 +25,8 @@ services:
       DATABASE_URL: postgresql://ddreport:ddreport_pass@postgres:5432/ddreport
       NODE_ENV: production
       UPLOADS_DIR: /uploads
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
     volumes:
       - uploads_data:/uploads
     depends_on:

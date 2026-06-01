@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 const UPLOADS_DIR  = process.env.UPLOADS_DIR  || '/uploads'
 const MAX_FILES    = 10
@@ -19,7 +20,10 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const job = await prisma.job.findUnique({ where: { id: params.id } })
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const job = await prisma.job.findFirst({ where: { id: params.id, shopId: session.user.shopId } })
     if (!job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }

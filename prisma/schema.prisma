@@ -8,9 +8,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Job {
+enum Role {
+  SUPER_ADMIN
+  SHOP_ADMIN
+  LEAD_TECH
+  TECH
+}
+
+enum TransferStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  DISPUTED
+  REJECTED
+  CANCELLED
+}
+
+enum JobTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model Shop {
+  id            String          @id @default(cuid())
+  refCode       String          @unique
+  name          String
+  parentId      String?
+  parent        Shop?           @relation("ShopBranches", fields: [parentId], references: [id])
+  branches      Shop[]          @relation("ShopBranches")
+  users         User[]
+  jobs          Job[]
+  stockItems    StockItem[]
+  transfersFrom StockTransfer[] @relation("TransferFrom")
+  transfersTo   StockTransfer[] @relation("TransferTo")
+  shopPartners  ShopPartner[]   @relation("ShopPartners")
+  partnerOf        ShopPartner[]   @relation("PartnerShops")
+  jobTransfersFrom JobTransfer[]   @relation("JobTransferFrom")
+  jobTransfersTo   JobTransfer[]   @relation("JobTransferTo")
+  createdAt        DateTime        @default(now())
+}
+
+model User {
   id           String   @id @default(cuid())
-  jobNo        String   @unique
+  email        String
+  password     String
+  name         String
+  role         Role
+  isActive     Boolean  @default(true)
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  createdJobs  Job[]    @relation("CreatedBy")
+  assignedJobs Job[]    @relation("AssignedJobs")
+  createdAt    DateTime @default(now())
+
+  @@unique([email, shopId])
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  jobNo        String    @unique
   date         String
   time         String
   customerName String
@@ -22,8 +80,17 @@ model Job {
   cause        String
   totalPrice   Float
   status       String
-  createdAt    DateTime @default(now())
+  shopId       String?
+  createdBy    String?
+  assignedTo   String?
+  stockStatus  String    @default("none")
+  shop         Shop?     @relation(fields: [shopId], references: [id])
+  creator      User?     @relation("CreatedBy", fields: [createdBy], references: [id])
+  assignedUser User?     @relation("AssignedJobs", fields: [assignedTo], references: [id])
+  createdAt    DateTime  @default(now())
   images       Image[]
+  jobParts     JobPart[]
+  transfer     JobTransfer?
 }
 
 model Image {
@@ -34,4 +101,126 @@ model Image {
   job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
+}
+
+model StockItem {
+  id            String             @id @default(cuid())
+  shopId        String
+  shop          Shop               @relation(fields: [shopId], references: [id])
+  name          String
+  category      String
+  unit          String
+  quantity      Float
+  reserved      Float              @default(0)
+  costPrice     Float
+  supplierPhone String?
+  warrantyStart DateTime?
+  warrantyEnd   DateTime?
+  createdAt     DateTime           @default(now())
+  jobParts      JobPart[]
+  adjustLogs    StockAdjustLog[]
+  transferItems StockTransferItem[]
+
+  @@index([shopId])
+}
+
+model JobPart {
+  id          String    @id @default(cuid())
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stockItemId String
+  stockItem   StockItem @relation(fields: [stockItemId], references: [id])
+  quantity    Float
+
+  @@unique([jobId, stockItemId])
+}
+
+model StockAdjustLog {
+  id          String    @id @default(cuid())
+  stockItemId String
+  stockItem   StockItem @relation(fields: [stockItemId], references: [id])
+  delta       Float
+  reason      String
+  userId      String
+  createdAt   DateTime  @default(now())
+
+  @@index([stockItemId])
+}
+
+model StockTransfer {
+  id           String              @id @default(cuid())
+  type         String
+  fromShopId   String
+  toShopId     String
+  fromShop     Shop                @relation("TransferFrom", fields: [fromShopId], references: [id])
+  toShop       Shop                @relation("TransferTo", fields: [toShopId], references: [id])
+  status       TransferStatus      @default(PENDING)
+  deliveryDate DateTime
+  receivedAt   DateTime?
+  unitPrice    Float?
+  note         String?
+  requestedBy  String
+  items        StockTransferItem[]
+  disputes     TransferDispute[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([fromShopId])
+  @@index([toShopId])
+}
+
+model StockTransferItem {
+  id          String        @id @default(cuid())
+  transferId  String
+  transfer    StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  stockItemId String
+  stockItem   StockItem     @relation(fields: [stockItemId], references: [id])
+  quantity    Float
+
+  @@index([transferId])
+  @@index([stockItemId])
+}
+
+model TransferDispute {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  raisedBy   String
+  message    String
+  createdAt  DateTime      @default(now())
+
+  @@index([transferId])
+}
+
+model ShopPartner {
+  id        String   @id @default(cuid())
+  shopId    String
+  partnerId String
+  status    String   @default("PENDING")
+  shop      Shop     @relation("ShopPartners", fields: [shopId], references: [id])
+  partner   Shop     @relation("PartnerShops", fields: [partnerId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, partnerId])
+  @@index([shopId])
+  @@index([partnerId])
+}
+
+model JobTransfer {
+  id                String            @id @default(cuid())
+  jobId             String            @unique
+  job               Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  fromShopId        String
+  toShopId          String
+  fromShop          Shop              @relation("JobTransferFrom", fields: [fromShopId], references: [id])
+  toShop            Shop              @relation("JobTransferTo", fields: [toShopId], references: [id])
+  status            JobTransferStatus @default(PENDING)
+  previousJobStatus String
+  requestedBy       String
+  note              String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([fromShopId])
+  @@index([toShopId])
 }

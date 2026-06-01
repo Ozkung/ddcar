@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 
 const STATUSES  = ['ลูกค้าอนุมัติซ่อมแล้ว', 'ซ่อมเสร็จเรียบร้อยแล้ว', 'ส่งมอบและเก็บเงินแล้ว']
 const SYMPTOMS  = ['ระบบเครื่องยนต์', 'ระบบส่งกำลัง', 'ระบบช่วงล่าง', 'ระบบปรับอากาศ', 'ระบบเบรค']
@@ -14,6 +15,10 @@ function getCluster(visits: number, totalSpend: number, recencyDays: number): st
 
 export async function GET(request: Request) {
   try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { shopId } = session.user
+
     const { searchParams } = new URL(request.url)
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo   = searchParams.get('dateTo')   || ''
@@ -24,7 +29,7 @@ export async function GET(request: Request) {
     const thisYearStr  = todayStr.slice(0, 4)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {}
+    const where: any = { shopId }
     if (dateFrom || dateTo) {
       where.date = {}
       if (dateFrom) where.date.gte = dateFrom

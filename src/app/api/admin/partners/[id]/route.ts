@@ -1,0 +1,82 @@
+import { NextRequest } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+
+export async function PATCH(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { role, shopId } = session.user
+    if (role === 'TECH' || role === 'LEAD_TECH') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const record = await prisma.shopPartner.findUnique({ where: { id: params.id } })
+    if (!record) return Response.json({ error: 'Not found' }, { status: 404 })
+
+    // Must be the target (or SUPER_ADMIN) to accept
+    if (role !== 'SUPER_ADMIN' && record.partnerId !== shopId) {
+      return Response.json({ error: 'Not found' }, { status: 404 })
+    }
+    if (record.status !== 'PENDING') {
+      return Response.json({ error: 'รับได้เฉพาะคำขอที่ยังรออยู่ (PENDING) เท่านั้น' }, { status: 422 })
+    }
+
+    // Accept: re-check inside transaction to prevent double-accept TOCTOU
+    await prisma.$transaction(async (tx) => {
+      const fresh = await tx.shopPartner.findUnique({ where: { id: record.id } })
+      if (!fresh || fresh.status !== 'PENDING') return
+      await tx.shopPartner.update({ where: { id: record.id }, data: { status: 'ACCEPTED' } })
+      await tx.shopPartner.create({
+        data: { shopId: record.partnerId, partnerId: record.shopId, status: 'ACCEPTED' },
+      })
+    })
+
+    return Response.json({ ok: true })
+  } catch (err: unknown) {
+    const e = err as { code?: string }
+    if (e.code === 'P2002') return Response.json({ ok: true }) // already accepted concurrently
+    console.error('[PATCH /api/admin/partners/[id]]', err)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { role, shopId } = session.user
+    if (role === 'TECH' || role === 'LEAD_TECH') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const record = await prisma.shopPartner.findUnique({ where: { id: params.id } })
+    if (!record) return Response.json({ error: 'Not found' }, { status: 404 })
+
+    // Must belong to the relationship (or SUPER_ADMIN)
+    if (role !== 'SUPER_ADMIN' && record.shopId !== shopId && record.partnerId !== shopId) {
+      return Response.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    // Delete both directions atomically
+    await prisma.$transaction([
+      prisma.shopPartner.delete({ where: { id: record.id } }),
+      prisma.shopPartner.deleteMany({
+        where: { shopId: record.partnerId, partnerId: record.shopId },
+      }),
+    ])
+
+    return Response.json({ ok: true })
+  } catch (err) {
+    console.error('[DELETE /api/admin/partners/[id]]', err)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

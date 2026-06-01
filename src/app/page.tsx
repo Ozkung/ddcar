@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Form, Steps, Button, Input, DatePicker, TimePicker,
-  InputNumber, Select, Checkbox, Upload, message, Card, Typography
+  InputNumber, Select, Checkbox, Upload, message, Card, Typography, Divider,
 } from 'antd'
-import { InboxOutlined } from '@ant-design/icons'
+import { InboxOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
 
@@ -24,25 +24,48 @@ const SYMPTOMS = [
 
 const STATUSES = [
   'ลูกค้าอนุมัติซ่อมแล้ว',
+  'อยู่ระหว่างดำเนินการ',
   'ซ่อมเสร็จเรียบร้อยแล้ว',
   'ส่งมอบและเก็บเงินแล้ว',
+  'ยกเลิกรายการแล้ว',
 ]
 
-// Fields required per step (empty = no required fields to validate)
 const STEP_REQUIRED_FIELDS: string[][] = [
   ['date', 'time'],
   ['customerName', 'phone', 'licensePlate', 'odometer'],
   [],
   ['cause', 'totalPrice', 'status'],
   [],
+  [],
 ]
+
+interface Tech { id: string; name: string; role: string }
+interface StockItemOption { id: string; name: string; unit: string; availableQty: number; category: string }
+interface PartRow { stockItemId: string; quantity: number }
 
 export default function IntakeFormPage() {
   const router = useRouter()
-  const [form]        = Form.useForm()
-  const [step, setStep]       = useState(0)
+  const [form] = Form.useForm()
+  const [step, setStep] = useState(0)
   const [fileList, setFileList] = useState<UploadFile[]>([])
-  const [loading, setLoading]   = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [techs, setTechs] = useState<Tech[]>([])
+  const [stockItems, setStockItems] = useState<StockItemOption[]>([])
+  const [parts, setParts] = useState<PartRow[]>([])
+
+  useEffect(() => {
+    fetch('/api/users/techs').then(r => r.json()).then(setTechs).catch(() => {})
+  }, [])
+
+  // Lazy-load stock items when user reaches step 4
+  useEffect(() => {
+    if (step === 4 && stockItems.length === 0) {
+      fetch('/api/stock?available=true')
+        .then(r => r.json())
+        .then(setStockItems)
+        .catch(() => {})
+    }
+  }, [step, stockItems.length])
 
   const goNext = async () => {
     try {
@@ -55,10 +78,20 @@ export default function IntakeFormPage() {
 
   const goPrev = () => setStep(s => s - 1)
 
+  function updatePart(index: number, field: keyof PartRow, value: string | number) {
+    setParts(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p))
+  }
+
+  function removePart(index: number) {
+    setParts(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
       const values = form.getFieldsValue(true)
+
+      const validParts = parts.filter(p => p.stockItemId && p.quantity > 0)
 
       const body = {
         date:        (values.date as dayjs.Dayjs)?.format('YYYY-MM-DD') ?? '',
@@ -72,6 +105,8 @@ export default function IntakeFormPage() {
         cause:        values.cause ?? '',
         totalPrice:   Number(values.totalPrice ?? 0),
         status:       values.status ?? STATUSES[0],
+        assignedTo:   values.assignedTo || null,
+        parts:        validParts,
       }
 
       const res = await fetch('/api/jobs', {
@@ -87,35 +122,27 @@ export default function IntakeFormPage() {
 
       const { id } = await res.json()
 
-      // Upload images if any were selected
       if (fileList.length > 0) {
         const fd = new FormData()
-        fileList.forEach(f => {
-          if (f.originFileObj) fd.append('images', f.originFileObj)
-        })
+        fileList.forEach(f => { if (f.originFileObj) fd.append('images', f.originFileObj) })
         const imgRes = await fetch(`/api/jobs/${id}/images`, { method: 'POST', body: fd })
-        if (!imgRes.ok) {
-          message.warning('บันทึกงานแล้ว แต่อัปโหลดรูปภาพไม่สำเร็จ')
-        }
+        if (!imgRes.ok) message.warning('บันทึกงานแล้ว แต่อัปโหลดรูปภาพไม่สำเร็จ')
       }
 
       router.push(`/receipt/${id}`)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด'
-      message.error(msg)
+      message.error(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด')
     } finally {
       setLoading(false)
     }
   }
 
-  const stepLabel = (n: number) =>
-    ['1. เบื้องต้น','2. ลูกค้า/รถ','3. อาการ','4. ผลและราคา','5. รูปภาพ'][n]
+  const STEP_LABELS = ['1. เบื้องต้น', '2. ลูกค้า/รถ', '3. อาการ', '4. ผลและราคา', '5. อะไหล่', '6. รูปภาพ']
 
   return (
     <div style={{ minHeight: 'calc(100vh - 48px)', background: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '32px 16px' }}>
-      <Card style={{ width: '100%', maxWidth: 520, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
+      <Card style={{ width: '100%', maxWidth: 560, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.06)' }}>
 
-        {/* Progress steps */}
         <Steps
           current={step}
           size="small"
@@ -125,16 +152,17 @@ export default function IntakeFormPage() {
             { title: 'ลูกค้า/รถ' },
             { title: 'อาการ' },
             { title: 'ผล/ราคา' },
+            { title: 'อะไหล่' },
             { title: 'รูปภาพ' },
           ]}
         />
 
         <Form form={form} layout="vertical" requiredMark={false}>
 
-          {/* ── Step 1: Basic Info ───────────────────────────── */}
+          {/* ── Step 1: Basic Info + Technician ─────────────── */}
           <div style={{ display: step === 0 ? 'block' : 'none' }}>
             <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 20 }}>
-              {stepLabel(0)}
+              {STEP_LABELS[0]}
             </Title>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <Form.Item name="date" label="วันที่รับรถ" rules={[{ required: true, message: 'กรุณาเลือกวันที่' }]}>
@@ -144,12 +172,19 @@ export default function IntakeFormPage() {
                 <TimePicker style={{ width: '100%' }} format="HH:mm" placeholder="เลือกเวลา" />
               </Form.Item>
             </div>
+            <Form.Item name="assignedTo" label="ช่างที่รับงาน (ไม่บังคับ)">
+              <Select
+                allowClear
+                placeholder="เลือกช่าง"
+                options={techs.map(t => ({ label: t.name, value: t.id }))}
+              />
+            </Form.Item>
           </div>
 
           {/* ── Step 2: Customer & Vehicle ───────────────────── */}
           <div style={{ display: step === 1 ? 'block' : 'none' }}>
             <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 20 }}>
-              {stepLabel(1)}
+              {STEP_LABELS[1]}
             </Title>
             <Form.Item name="customerName" label="ชื่อ-นามสกุล ลูกค้า" rules={[{ required: true, message: 'กรุณาระบุชื่อ' }]}>
               <Input placeholder="ระบุชื่อ-นามสกุล" />
@@ -170,7 +205,7 @@ export default function IntakeFormPage() {
           {/* ── Step 3: Symptoms ─────────────────────────────── */}
           <div style={{ display: step === 2 ? 'block' : 'none' }}>
             <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 20 }}>
-              {stepLabel(2)}
+              {STEP_LABELS[2]}
             </Title>
             <Form.Item name="symptoms" label="เลือกระบบที่มีปัญหา">
               <Checkbox.Group style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -178,13 +213,7 @@ export default function IntakeFormPage() {
                   <Checkbox
                     key={s}
                     value={s}
-                    style={{
-                      background: '#f1f5f9',
-                      padding: '10px 14px',
-                      borderRadius: 8,
-                      marginInlineStart: 0,
-                      width: '100%',
-                    }}
+                    style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: 8, marginInlineStart: 0, width: '100%' }}
                   >
                     {s}
                   </Checkbox>
@@ -194,15 +223,7 @@ export default function IntakeFormPage() {
             <Form.Item name="notes" label="รายละเอียดเพิ่มเติม">
               <TextArea rows={2} placeholder="อาการอื่น ๆ ที่ลูกค้าแจ้ง" />
             </Form.Item>
-            <div style={{
-              background: '#fff7ed',
-              border: '1px dashed #f97316',
-              padding: '12px 16px',
-              borderRadius: 8,
-              fontSize: '0.875rem',
-              color: '#9a3412',
-              fontStyle: 'italic',
-            }}>
+            <div style={{ background: '#fff7ed', border: '1px dashed #f97316', padding: '12px 16px', borderRadius: 8, fontSize: '0.875rem', color: '#9a3412', fontStyle: 'italic' }}>
               <strong>ธุรการพูด:</strong> "เดี๋ยวช่างนัทจะเช็คอย่างละเอียดและโทรแจ้งราคาก่อนซ่อมนะคะ"
             </div>
           </div>
@@ -210,7 +231,7 @@ export default function IntakeFormPage() {
           {/* ── Step 4: Result & Price ───────────────────────── */}
           <div style={{ display: step === 3 ? 'block' : 'none' }}>
             <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 20 }}>
-              {stepLabel(3)}
+              {STEP_LABELS[3]}
             </Title>
             <Form.Item name="cause" label="สาเหตุที่พบ / อะไหล่" rules={[{ required: true, message: 'กรุณาระบุสาเหตุ' }]}>
               <TextArea rows={3} placeholder="เช่น ผ้าเบรคหมด, น้ำมันเครื่องรั่ว" />
@@ -223,10 +244,49 @@ export default function IntakeFormPage() {
             </Form.Item>
           </div>
 
-          {/* ── Step 5: Image Upload ─────────────────────────── */}
+          {/* ── Step 5: Parts ────────────────────────────────── */}
           <div style={{ display: step === 4 ? 'block' : 'none' }}>
+            <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 8 }}>
+              {STEP_LABELS[4]}
+            </Title>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: 16 }}>
+              เลือกอะไหล่จากคลังที่ใช้ในงานนี้ (ไม่บังคับ)
+            </p>
+            {parts.map((part, index) => (
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 32px', gap: 8, marginBottom: 8 }}>
+                <Select
+                  placeholder="เลือกอะไหล่"
+                  value={part.stockItemId || undefined}
+                  onChange={v => updatePart(index, 'stockItemId', v)}
+                  options={stockItems.map(s => ({
+                    label: `${s.name} (${s.category}) — พร้อมใช้ ${s.availableQty} ${s.unit}`,
+                    value: s.id,
+                  }))}
+                />
+                <InputNumber
+                  min={1}
+                  max={stockItems.find(s => s.id === part.stockItemId)?.availableQty ?? 9999}
+                  value={part.quantity}
+                  onChange={v => updatePart(index, 'quantity', v ?? 1)}
+                  style={{ width: '100%' }}
+                />
+                <Button danger icon={<DeleteOutlined />} onClick={() => removePart(index)} />
+              </div>
+            ))}
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={() => setParts(prev => [...prev, { stockItemId: '', quantity: 1 }])}
+              block
+            >
+              เพิ่มอะไหล่
+            </Button>
+          </div>
+
+          {/* ── Step 6: Image Upload ─────────────────────────── */}
+          <div style={{ display: step === 5 ? 'block' : 'none' }}>
             <Title level={5} style={{ borderLeft: '4px solid #2563eb', paddingLeft: 10, marginBottom: 20 }}>
-              {stepLabel(4)}
+              {STEP_LABELS[5]}
             </Title>
             <Dragger
               accept=".jpg,.jpeg,.png,.webp"
@@ -248,14 +308,13 @@ export default function IntakeFormPage() {
           </div>
         </Form>
 
-        {/* Navigation buttons */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
           {step > 0 ? (
             <Button onClick={goPrev} disabled={loading}>กลับ</Button>
           ) : (
             <div />
           )}
-          {step < 4 ? (
+          {step < 5 ? (
             <Button type="primary" onClick={goNext}>ถัดไป →</Button>
           ) : (
             <Button
