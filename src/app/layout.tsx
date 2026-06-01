@@ -85,6 +85,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </nav>
               )}
               {children}
+              <footer style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: '#94a3b8' }}>
+                <Link href="/privacy" style={{ color: '#94a3b8', marginRight: 16 }}>Privacy Policy</Link>
+                <Link href="/terms" style={{ color: '#94a3b8' }}>Terms of Service</Link>
+              </footer>
             </ConfigProvider>
           </AntdRegistry>
         </SessionProvider>
