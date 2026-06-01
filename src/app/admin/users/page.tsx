@@ -7,12 +7,21 @@ export default async function UsersPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const { shopId } = session.user
+  const { role, shopId } = session.user
+  const isSuperAdmin = role === 'SUPER_ADMIN'
+
   const users = await prisma.user.findMany({
-    where: { shopId },
-    select: { id: true, name: true, email: true, role: true, isActive: true },
+    where: isSuperAdmin ? {} : { shopId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      shop: { select: { name: true } },
+    },
     orderBy: { createdAt: 'asc' },
   })
 
-  return <UsersTable users={users} />
+  return <UsersTable users={users} isSuperAdmin={isSuperAdmin} />
 }

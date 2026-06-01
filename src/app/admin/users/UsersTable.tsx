@@ -27,44 +27,46 @@ interface User {
   email: string
   role: Role
   isActive: boolean
+  shop: { name: string }
 }
 
 interface Props {
   users: User[]
+  isSuperAdmin: boolean
 }
 
-const columns = [
-  { title: 'ชื่อ', dataIndex: 'name', key: 'name' },
-  { title: 'Email', dataIndex: 'email', key: 'email' },
-  {
-    title: 'Role',
-    dataIndex: 'role',
-    key: 'role',
-    render: (role: Role) => (
-      <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
-    ),
-  },
-  {
-    title: 'สถานะ',
-    dataIndex: 'isActive',
-    key: 'isActive',
-    render: (active: boolean) => (
-      <Tag color={active ? 'green' : 'default'}>{active ? 'ใช้งาน' : 'ปิดใช้งาน'}</Tag>
-    ),
-  },
-  {
-    title: '',
-    key: 'actions',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    render: (_: any, record: User) => (
-      <Link href={`/admin/users/${record.id}/edit`}>
-        <Button size="small" icon={<EditOutlined />}>แก้ไข</Button>
-      </Link>
-    ),
-  },
-]
+export function UsersTable({ users, isSuperAdmin }: Props) {
+  const columns = [
+    { title: 'ชื่อ', dataIndex: 'name', key: 'name' },
+    { title: 'Email', dataIndex: 'email', key: 'email' },
+    ...(isSuperAdmin
+      ? [{ title: 'ร้าน', key: 'shop', render: (_: unknown, r: User) => r.shop.name }]
+      : []),
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      render: (role: Role) => <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>,
+    },
+    {
+      title: 'สถานะ',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (active: boolean) => (
+        <Tag color={active ? 'green' : 'default'}>{active ? 'ใช้งาน' : 'ปิดใช้งาน'}</Tag>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      render: (_: unknown, record: User) => (
+        <Link href={`/admin/users/${record.id}/edit`}>
+          <Button size="small" icon={<EditOutlined />}>แก้ไข</Button>
+        </Link>
+      ),
+    },
+  ]
 
-export function UsersTable({ users }: Props) {
   return (
     <div style={{ padding: '1.5rem 2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>

@@ -6,6 +6,8 @@ services:
       POSTGRES_USER: ddreport
       POSTGRES_PASSWORD: ddreport_pass
       POSTGRES_DB: ddreport
+    ports:
+      - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:

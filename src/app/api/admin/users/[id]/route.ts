@@ -16,7 +16,8 @@ export async function PATCH(
     return Response.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const target = await prisma.user.findFirst({ where: { id: params.id, shopId } })
+  const scopeFilter = currentRole === 'SUPER_ADMIN' ? { id: params.id } : { id: params.id, shopId }
+  const target = await prisma.user.findFirst({ where: scopeFilter })
   if (!target) return Response.json({ error: 'ไม่พบผู้ใช้' }, { status: 404 })
 
   const body = await req.json()
@@ -66,7 +67,8 @@ export async function DELETE(
     return Response.json({ error: 'ไม่สามารถลบตัวเองได้' }, { status: 400 })
   }
 
-  const target = await prisma.user.findFirst({ where: { id: params.id, shopId } })
+  const scopeFilter = currentRole === 'SUPER_ADMIN' ? { id: params.id } : { id: params.id, shopId }
+  const target = await prisma.user.findFirst({ where: scopeFilter })
   if (!target) return Response.json({ error: 'ไม่พบผู้ใช้' }, { status: 404 })
 
   await prisma.user.delete({ where: { id: params.id } })

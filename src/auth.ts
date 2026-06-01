@@ -26,7 +26,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!shop) return null
 
         const user = await prisma.user.findUnique({
-          where: { email_shopId: { email, shopId: shop.id } },
+          where: { email_shopId: { email: email.trim().toLowerCase(), shopId: shop.id } },
         })
         if (!user || !user.isActive) return null
 

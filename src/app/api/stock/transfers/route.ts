@@ -58,6 +58,20 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'type ต้องเป็น BRANCH หรือ PARTNER_SALE' }, { status: 422 })
     }
 
+    // BRANCH: validate toShopId is in the same family (parent / sibling / child)
+    if (type === 'BRANCH') {
+      const currentShop = await prisma.shop.findUnique({ where: { id: shopId }, select: { parentId: true } })
+      const rootId = currentShop?.parentId ?? shopId
+      const familyShops = await prisma.shop.findMany({
+        where: { OR: [{ id: rootId }, { parentId: rootId }] },
+        select: { id: true },
+      })
+      const familyIds = new Set(familyShops.map(s => s.id))
+      if (!familyIds.has(toShopId)) {
+        return Response.json({ error: 'BRANCH transfers ต้องอยู่ในกลุ่มสาขาเดียวกัน' }, { status: 422 })
+      }
+    }
+
     // PARTNER_SALE: validate unitPrice + partner relationship
     if (type === 'PARTNER_SALE') {
       const numPrice = Number(unitPrice)
