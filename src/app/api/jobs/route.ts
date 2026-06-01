@@ -106,7 +106,16 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
-        include: { images: { select: { id: true, filename: true } } },
+        include: {
+          images: { select: { id: true, filename: true } },
+          transfer: {
+            select: {
+              status: true,
+              toShop: { select: { name: true, refCode: true } },
+              fromShop: { select: { name: true, refCode: true } },
+            },
+          },
+        },
       }),
       prisma.job.count({ where }),
     ])

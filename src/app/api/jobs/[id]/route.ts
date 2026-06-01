@@ -11,16 +11,33 @@ export async function GET(
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const { shopId } = session.user
+
     const job = await prisma.job.findFirst({
-      where: { id: params.id, shopId: session.user.shopId },
+      where: {
+        id: params.id,
+        OR: [
+          { shopId },
+          { transfer: { toShopId: shopId, status: 'ACCEPTED' } },
+        ],
+      },
       include: {
         images: { select: { id: true, filename: true } },
         jobParts: {
-          include: { stockItem: { select: { id: true, name: true, category: true, unit: true } } },
+          include: {
+            stockItem: { select: { id: true, name: true, category: true, unit: true } },
+          },
+        },
+        transfer: {
+          include: {
+            fromShop: { select: { name: true, refCode: true } },
+            toShop:   { select: { name: true, refCode: true } },
+          },
         },
       },
     })
     if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     return NextResponse.json(job)
   } catch (err) {
     console.error('[GET /api/jobs/[id]]', err)
