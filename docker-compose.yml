@@ -19,7 +19,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: apps/shop/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://ddreport:ddreport_pass@postgres:5432/ddreport
