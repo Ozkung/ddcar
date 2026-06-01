@@ -24,6 +24,13 @@ enum TransferStatus {
   CANCELLED
 }
 
+enum JobTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 model Shop {
   id            String          @id @default(cuid())
   refCode       String          @unique
@@ -37,8 +44,10 @@ model Shop {
   transfersFrom StockTransfer[] @relation("TransferFrom")
   transfersTo   StockTransfer[] @relation("TransferTo")
   shopPartners  ShopPartner[]   @relation("ShopPartners")
-  partnerOf     ShopPartner[]   @relation("PartnerShops")
-  createdAt     DateTime        @default(now())
+  partnerOf        ShopPartner[]   @relation("PartnerShops")
+  jobTransfersFrom JobTransfer[]   @relation("JobTransferFrom")
+  jobTransfersTo   JobTransfer[]   @relation("JobTransferTo")
+  createdAt        DateTime        @default(now())
 }
 
 model User {
@@ -81,6 +90,7 @@ model Job {
   createdAt    DateTime  @default(now())
   images       Image[]
   jobParts     JobPart[]
+  transfer     JobTransfer?
 }
 
 model Image {
@@ -194,4 +204,23 @@ model ShopPartner {
   @@unique([shopId, partnerId])
   @@index([shopId])
   @@index([partnerId])
+}
+
+model JobTransfer {
+  id                String            @id @default(cuid())
+  jobId             String            @unique
+  job               Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  fromShopId        String
+  toShopId          String
+  fromShop          Shop              @relation("JobTransferFrom", fields: [fromShopId], references: [id])
+  toShop            Shop              @relation("JobTransferTo", fields: [toShopId], references: [id])
+  status            JobTransferStatus @default(PENDING)
+  previousJobStatus String
+  requestedBy       String
+  note              String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([fromShopId])
+  @@index([toShopId])
 }
