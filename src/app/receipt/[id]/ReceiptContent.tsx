@@ -1,6 +1,8 @@
 'use client'
 
-import { Descriptions, Tag, Typography, Divider, Button } from 'antd'
+import { Descriptions, Tag, Typography, Divider, Button, Alert, Space } from 'antd'
+import { useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import PrintButton from './PrintButton'
 import ImageGallery from './ImageGallery'
 import Link from 'next/link'
@@ -12,6 +14,14 @@ const STATUS_COLORS: Record<string, string> = {
   'ลูกค้าอนุมัติซ่อมแล้ว':  'blue',
   'ซ่อมเสร็จเรียบร้อยแล้ว': 'orange',
   'ส่งมอบและเก็บเงินแล้ว':  'green',
+  'ถ่ายงานออก':              'purple',
+}
+
+interface TransferInfo {
+  id: string
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
+  fromShop: { name: string; refCode: string }
+  toShop:   { name: string; refCode: string }
 }
 
 interface JobData {
@@ -28,11 +38,48 @@ interface JobData {
   cause: string
   totalPrice: number
   status: string
+  shopId: string | null
   createdAt: string
   images: { id: string; filename: string }[]
+  transfer: TransferInfo | null
 }
 
-export default function ReceiptContent({ job }: { job: JobData }) {
+interface Props {
+  job: JobData
+  currentShopId: string
+}
+
+export default function ReceiptContent({ job, currentShopId }: Props) {
+  const router = useRouter()
+  const transfer = job.transfer
+
+  // Determine perspective
+  const isSourceShop = job.shopId === currentShopId
+  const isSourcePending  = isSourceShop && transfer?.status === 'PENDING'
+  const isSourceAccepted = isSourceShop && transfer?.status === 'ACCEPTED'
+  const isDestAccepted   = !isSourceShop && transfer?.status === 'ACCEPTED'
+
+  // 30-second polling + visibilitychange when source is tracking
+  const shouldPoll = isSourcePending || isSourceAccepted
+  const refresh = useCallback(() => router.refresh(), [router])
+
+  useEffect(() => {
+    if (!shouldPoll) return
+    const interval = setInterval(refresh, 30_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVisible) }
+  }, [shouldPoll, refresh])
+
+  async function cancelTransfer() {
+    const res = await fetch(`/api/jobs/${job.id}/transfer`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    })
+    if (res.ok) router.refresh()
+  }
+
   const items = [
     { key: '1',  label: 'เลขที่ใบงาน',         children: <Text strong>{job.jobNo}</Text> },
     { key: '2',  label: 'วันที่รับรถ',          children: job.date },
@@ -60,14 +107,59 @@ export default function ReceiptContent({ job }: { job: JobData }) {
     },
   ]
 
+  // Edit button only shows when job is not actively being transferred
+  const showEdit = !transfer || (transfer.status !== 'ACCEPTED' && transfer.status !== 'PENDING')
+
   return (
     <div style={{ maxWidth: 720, margin: '32px auto', padding: '0 16px' }}>
 
-      {/* Action buttons — hidden when printing via globals.css .no-print */}
+      {/* Source shop: PENDING — waiting for destination to accept */}
+      {isSourcePending && transfer && (
+        <Alert
+          type="warning"
+          style={{ marginBottom: 16 }}
+          message={
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <span>⏳ รอ <strong>{transfer.toShop.name}</strong> กดรับงาน</span>
+              <Button size="small" danger onClick={cancelTransfer}>ยกเลิกการโอน</Button>
+            </Space>
+          }
+        />
+      )}
+
+      {/* Source shop: ACCEPTED — tracking destination progress */}
+      {isSourceAccepted && transfer && (
+        <Alert
+          type="info"
+          style={{ marginBottom: 16 }}
+          message={
+            <span>
+              🔄 ถ่ายงานออกไปยัง <strong>{transfer.toShop.name}</strong>{' '}
+              ({transfer.toShop.refCode}) — สถานะปัจจุบัน:{' '}
+              <Tag color={STATUS_COLORS[job.status] ?? 'default'}>{job.status}</Tag>
+            </span>
+          }
+        />
+      )}
+
+      {/* Destination shop: ACCEPTED */}
+      {isDestAccepted && transfer && (
+        <Alert
+          type="success"
+          style={{ marginBottom: 16 }}
+          message={
+            <span>📥 รับโอนจาก <strong>{transfer.fromShop.name}</strong> ({transfer.fromShop.refCode})</span>
+          }
+        />
+      )}
+
+      {/* Action buttons */}
       <div className="no-print" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        <Link href={`/edit/${job.id}`}>
-          <Button icon={<EditOutlined />}>แก้ไขใบงาน</Button>
-        </Link>
+        {showEdit && (
+          <Link href={`/edit/${job.id}`}>
+            <Button icon={<EditOutlined />}>แก้ไขใบงาน</Button>
+          </Link>
+        )}
         <PrintButton />
       </div>
 
