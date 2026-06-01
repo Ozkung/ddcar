@@ -60,17 +60,54 @@ export async function PATCH(
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { shopId, role, id: userId } = session.user
 
-    const existing = await prisma.job.findFirst({
+    // Try to find as the job's owning shop first
+    let existing = await prisma.job.findFirst({
       where: { id: params.id, shopId },
-      include: { jobParts: true },
+      include: { jobParts: true, transfer: true },
     })
+
+    let isDestinationShop = false
+    if (!existing) {
+      // Check if this is an accepted transfer where we are the destination
+      existing = await prisma.job.findFirst({
+        where: {
+          id: params.id,
+          transfer: { toShopId: shopId, status: 'ACCEPTED' },
+        },
+        include: { jobParts: true, transfer: true },
+      })
+      if (existing) isDestinationShop = true
+    }
+
     if (!existing) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 
-    if (role === 'TECH' && existing.createdBy !== userId) {
+    // Destination shop: TECH cannot update
+    if (isDestinationShop && role === 'TECH') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Source shop: TECH can only update their own jobs
+    if (!isDestinationShop && role === 'TECH' && existing.createdBy !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await req.json()
+
+    // Destination shop: only status and parts are mutable
+    if (isDestinationShop) {
+      const READONLY_FIELDS = [
+        'date', 'time', 'customerName', 'phone', 'licensePlate',
+        'odometer', 'symptoms', 'notes', 'cause', 'totalPrice', 'assignedTo',
+      ]
+      for (const field of READONLY_FIELDS) {
+        if (field in body) {
+          return NextResponse.json(
+            { error: `ร้านปลายทางไม่สามารถแก้ไขฟิลด์ ${field}` },
+            { status: 403 }
+          )
+        }
+      }
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: Record<string, any> = {}
 
