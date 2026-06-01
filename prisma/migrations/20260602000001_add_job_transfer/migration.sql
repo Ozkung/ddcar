@@ -10,7 +10,7 @@ CREATE TABLE "JobTransfer" (
     "requestedBy" TEXT NOT NULL,
     "note" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "JobTransfer_pkey" PRIMARY KEY ("id")
 );
