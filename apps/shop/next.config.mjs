@@ -4,6 +4,7 @@ import withPWA from '@ducanh2912/next-pwa'
 const nextConfig = {
   serverExternalPackages: ['@prisma/client'],
   transpilePackages: [
+    '@ddcar/db',
     'antd',
     'rc-util',
     '@ant-design/icons',

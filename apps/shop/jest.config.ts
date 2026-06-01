@@ -5,6 +5,7 @@ const config: Config = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@ddcar/db$': '<rootDir>/../../packages/db/src/index.ts',
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
 }
