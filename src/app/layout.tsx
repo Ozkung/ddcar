@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/auth'
 import { UserNav } from './UserNav'
+import { prisma } from '@/lib/prisma'
 import './globals.css'
 
 const sarabun = Sarabun({
@@ -33,6 +34,13 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   const user = session?.user
+
+  let pendingTransferCount = 0
+  if (user && user.role !== 'TECH') {
+    pendingTransferCount = await prisma.jobTransfer.count({
+      where: { toShopId: user.shopId, status: 'PENDING' },
+    })
+  }
 
   return (
     <html lang="th">
@@ -67,6 +75,31 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN' || user.role === 'LEAD_TECH') && (
                     <Link href="/stock" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
                       คลังอะไหล่
+                    </Link>
+                  )}
+                  {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN' || user.role === 'LEAD_TECH') && (
+                    <Link href="/jobs/incoming" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none', position: 'relative' }}>
+                      งานที่รับโอน
+                      {pendingTransferCount > 0 && (
+                        <span style={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -12,
+                          background: '#ef4444',
+                          color: 'white',
+                          borderRadius: '50%',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          minWidth: 16,
+                          height: 16,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 3px',
+                        }}>
+                          {pendingTransferCount}
+                        </span>
+                      )}
                     </Link>
                   )}
                   {(user.role === 'SUPER_ADMIN' || user.role === 'SHOP_ADMIN') && (
