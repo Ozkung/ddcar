@@ -140,16 +140,20 @@ export async function PATCH(
       if (transfer.status !== 'PENDING') {
         return Response.json({ error: 'รับได้เฉพาะ transfer ที่ PENDING เท่านั้น' }, { status: 422 })
       }
-      await prisma.$transaction([
-        prisma.jobTransfer.update({
-          where: { id: transfer.id },
-          data: { status: 'ACCEPTED' },
-        }),
-        prisma.job.update({
-          where: { id: params.id },
-          data: { status: 'ถ่ายงานออก' },
-        }),
-      ])
+      try {
+        await prisma.$transaction(async (tx) => {
+          const result = await tx.jobTransfer.updateMany({
+            where: { id: transfer.id, status: 'PENDING' },
+            data: { status: 'ACCEPTED' },
+          })
+          if (result.count === 0) throw Object.assign(new Error('ALREADY_PROCESSED'), { status: 422 })
+          await tx.job.update({ where: { id: params.id }, data: { status: 'ถ่ายงานออก' } })
+        })
+      } catch (err: unknown) {
+        const e = err as { status?: number; message?: string }
+        if (e.status === 422) return Response.json({ error: 'transfer ถูกดำเนินการไปแล้ว' }, { status: 422 })
+        throw err
+      }
       return Response.json({ ok: true })
     }
 
@@ -164,16 +168,20 @@ export async function PATCH(
       if (transfer.status !== 'PENDING') {
         return Response.json({ error: 'ปฏิเสธได้เฉพาะ transfer ที่ PENDING เท่านั้น' }, { status: 422 })
       }
-      await prisma.$transaction([
-        prisma.jobTransfer.update({
-          where: { id: transfer.id },
-          data: { status: 'REJECTED' },
-        }),
-        prisma.job.update({
-          where: { id: params.id },
-          data: { status: transfer.previousJobStatus },
-        }),
-      ])
+      try {
+        await prisma.$transaction(async (tx) => {
+          const result = await tx.jobTransfer.updateMany({
+            where: { id: transfer.id, status: 'PENDING' },
+            data: { status: 'REJECTED' },
+          })
+          if (result.count === 0) throw Object.assign(new Error('ALREADY_PROCESSED'), { status: 422 })
+          await tx.job.update({ where: { id: params.id }, data: { status: transfer.previousJobStatus } })
+        })
+      } catch (err: unknown) {
+        const e = err as { status?: number; message?: string }
+        if (e.status === 422) return Response.json({ error: 'transfer ถูกดำเนินการไปแล้ว' }, { status: 422 })
+        throw err
+      }
       return Response.json({ ok: true })
     }
 
@@ -191,16 +199,20 @@ export async function PATCH(
           { status: 422 }
         )
       }
-      await prisma.$transaction([
-        prisma.jobTransfer.update({
-          where: { id: transfer.id },
-          data: { status: 'CANCELLED' },
-        }),
-        prisma.job.update({
-          where: { id: params.id },
-          data: { status: transfer.previousJobStatus },
-        }),
-      ])
+      try {
+        await prisma.$transaction(async (tx) => {
+          const result = await tx.jobTransfer.updateMany({
+            where: { id: transfer.id, status: 'PENDING' },
+            data: { status: 'CANCELLED' },
+          })
+          if (result.count === 0) throw Object.assign(new Error('ALREADY_PROCESSED'), { status: 422 })
+          await tx.job.update({ where: { id: params.id }, data: { status: transfer.previousJobStatus } })
+        })
+      } catch (err: unknown) {
+        const e = err as { status?: number; message?: string }
+        if (e.status === 422) return Response.json({ error: 'transfer ถูกดำเนินการไปแล้ว' }, { status: 422 })
+        throw err
+      }
       return Response.json({ ok: true })
     }
 
