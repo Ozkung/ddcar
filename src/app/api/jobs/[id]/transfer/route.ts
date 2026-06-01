@@ -73,24 +73,33 @@ export async function POST(
       )
     }
 
-    // Delete stale REJECTED/CANCELLED transfer if present
-    if (job.transfer) {
-      await prisma.jobTransfer.delete({ where: { id: job.transfer.id } })
+    let transfer
+    try {
+      transfer = await prisma.$transaction(async (tx) => {
+        if (job.transfer) {
+          await tx.jobTransfer.delete({ where: { id: job.transfer.id } })
+        }
+        return tx.jobTransfer.create({
+          data: {
+            jobId: params.id,
+            fromShopId: shopId,
+            toShopId,
+            previousJobStatus: job.status,
+            requestedBy: userId,
+            note: note || null,
+          },
+          include: {
+            toShop: { select: { name: true, refCode: true } },
+          },
+        })
+      })
+    } catch (err: unknown) {
+      const e = err as { code?: string }
+      if (e.code === 'P2002') {
+        return Response.json({ error: 'ใบงานนี้มีการโอนที่ยังดำเนินการอยู่' }, { status: 422 })
+      }
+      throw err
     }
-
-    const transfer = await prisma.jobTransfer.create({
-      data: {
-        jobId: params.id,
-        fromShopId: shopId,
-        toShopId,
-        previousJobStatus: job.status,
-        requestedBy: userId,
-        note: note || null,
-      },
-      include: {
-        toShop: { select: { name: true, refCode: true } },
-      },
-    })
 
     return Response.json(transfer, { status: 201 })
   } catch (err) {
