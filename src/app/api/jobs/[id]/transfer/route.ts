@@ -77,6 +77,14 @@ export async function POST(
     try {
       transfer = await prisma.$transaction(async (tx) => {
         if (job.transfer) {
+          // Re-check status is still terminal inside the transaction (race guard)
+          const current = await tx.jobTransfer.findUnique({
+            where: { id: job.transfer.id },
+            select: { status: true },
+          })
+          if (current && (current.status === 'PENDING' || current.status === 'ACCEPTED')) {
+            throw Object.assign(new Error('ใบงานนี้มีการโอนที่ยังดำเนินการอยู่'), { status: 422 })
+          }
           await tx.jobTransfer.delete({ where: { id: job.transfer.id } })
         }
         return tx.jobTransfer.create({
@@ -94,7 +102,10 @@ export async function POST(
         })
       })
     } catch (err: unknown) {
-      const e = err as { code?: string }
+      const e = err as { code?: string; status?: number; message?: string }
+      if (e.status === 422) {
+        return Response.json({ error: e.message ?? 'ใบงานนี้มีการโอนที่ยังดำเนินการอยู่' }, { status: 422 })
+      }
       if (e.code === 'P2002') {
         return Response.json({ error: 'ใบงานนี้มีการโอนที่ยังดำเนินการอยู่' }, { status: 422 })
       }

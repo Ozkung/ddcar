@@ -81,6 +81,12 @@ export async function PATCH(
 
     if (!existing) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 
+    // Source shop: cannot edit once the transfer is ACCEPTED
+    const isSourceShop = existing.shopId === shopId
+    if (isSourceShop && existing.transfer?.status === 'ACCEPTED') {
+      return NextResponse.json({ error: 'งานถูกโอนออกแล้ว ไม่สามารถแก้ไขได้' }, { status: 403 })
+    }
+
     // Destination shop: TECH cannot update
     if (isDestinationShop && role === 'TECH') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

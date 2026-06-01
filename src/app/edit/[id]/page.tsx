@@ -22,9 +22,15 @@ export default async function EditPage({ params }: { params: { id: string } }) {
   if (!isDestinationShop) {
     const job = await prisma.job.findFirst({
       where: { id: params.id, shopId },
-      select: { id: true },
+      select: { id: true, transfer: { select: { status: true } } },
     })
     if (!job) notFound()
+
+    // Block source shop from editing while transfer is in-flight
+    const transferStatus = job.transfer?.status
+    if (transferStatus === 'PENDING' || transferStatus === 'ACCEPTED') {
+      redirect(`/receipt/${params.id}`)
+    }
   }
 
   return <EditForm isDestinationShop={isDestinationShop} fromShopName={fromShopName} />

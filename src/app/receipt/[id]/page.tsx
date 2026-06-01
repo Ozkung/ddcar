@@ -1,11 +1,12 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import ReceiptContent from './ReceiptContent'
 
 export default async function ReceiptPage({ params }: { params: { id: string } }) {
   const session = await auth()
-  const shopId = session?.user?.shopId ?? ''
+  if (!session) redirect('/login')
+  const shopId = session.user.shopId
 
   const job = await prisma.job.findFirst({
     where: {
