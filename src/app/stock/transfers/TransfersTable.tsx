@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Table, Tag, Button, Modal, Input, Space, message, Tabs, Typography } from 'antd'
 import dayjs from 'dayjs'
 
@@ -51,6 +52,7 @@ interface Props {
 }
 
 export default function TransfersTable({ branchTransfers, partnerTransfers, currentShopId, canManage }: Props) {
+  const router = useRouter()
   const [disputeId, setDisputeId] = useState<string | null>(null)
   const [disputeMsg, setDisputeMsg] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -72,7 +74,7 @@ export default function TransfersTable({ branchTransfers, partnerTransfers, curr
         CANCELLED:  'ยกเลิกสำเร็จ',
       }
       message.success(labels[status] ?? 'สำเร็จ')
-      window.location.reload()
+      router.refresh()
     } finally {
       setActionLoading(false)
     }
@@ -92,7 +94,7 @@ export default function TransfersTable({ branchTransfers, partnerTransfers, curr
       message.success('ร้องขอสำเร็จ')
       setDisputeId(null)
       setDisputeMsg('')
-      window.location.reload()
+      router.refresh()
     } finally {
       setActionLoading(false)
     }

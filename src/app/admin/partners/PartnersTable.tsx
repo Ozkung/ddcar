@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table, Button, Input, Space, Modal, message, Typography,
   Popconfirm, Tag, Select, Tabs, Card,
@@ -35,6 +36,7 @@ export default function PartnersTable({
   accepted = [], pending = [],
   shops = [], incoming = [], outgoing = [],
 }: Props) {
+  const router = useRouter()
   const [refCodeInput, setRefCodeInput] = useState('')
   const [sending, setSending] = useState(false)
   const [actionId, setActionId] = useState<string | null>(null)
@@ -58,7 +60,7 @@ export default function PartnersTable({
       if (!res.ok) { message.error(data.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success(`ส่งคำขอไปยัง ${data.targetName} สำเร็จ`)
       setRefCodeInput('')
-      window.location.reload()
+      router.refresh()
     } finally {
       setSending(false)
     }
@@ -74,7 +76,7 @@ export default function PartnersTable({
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); message.error(d.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success('รับเป็นพันธมิตรสำเร็จ')
-      window.location.reload()
+      router.refresh()
     } finally {
       setActionId(null)
     }
@@ -86,7 +88,7 @@ export default function PartnersTable({
       const res = await fetch(`/api/admin/partners/${id}`, { method: 'DELETE' })
       if (!res.ok) { const d = await res.json().catch(() => ({})); message.error(d.error ?? 'เกิดข้อผิดพลาด'); return }
       message.success('ลบพันธมิตรสำเร็จ')
-      window.location.reload()
+      router.refresh()
     } finally {
       setActionId(null)
     }
@@ -107,7 +109,7 @@ export default function PartnersTable({
       setDirectOpen(false)
       setShopAId(undefined)
       setShopBId(undefined)
-      window.location.reload()
+      router.refresh()
     } finally {
       setDirectSaving(false)
     }

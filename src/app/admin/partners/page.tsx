@@ -41,7 +41,7 @@ export default async function PartnersPage() {
     )
   }
 
-  // SHOP_ADMIN / LEAD_TECH
+  // SHOP_ADMIN
   const [acceptedRaw, incomingRaw, outgoingRaw] = await Promise.all([
     prisma.shopPartner.findMany({
       where: { shopId, status: 'ACCEPTED' },
