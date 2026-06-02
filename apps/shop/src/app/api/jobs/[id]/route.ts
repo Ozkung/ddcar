@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { redis } from '@/lib/redis'
+import { buildNotificationMessage } from '@/lib/notificationUtils'
 
 /* ─── GET /api/jobs/[id] ─────────────────────────────────────────────────── */
 export async function GET(
@@ -259,6 +261,29 @@ export async function PATCH(
       if (e.status === 404) return NextResponse.json({ error: e.message ?? 'Not found' }, { status: 404 })
       if (e.status === 422) return NextResponse.json({ error: e.message }, { status: 422 })
       throw err
+    }
+
+    // Emit SSE when status changed
+    if (newStatus && newStatus !== existing.status) {
+      const owningShopId = existing.shopId ?? shopId
+      const ssePayload = JSON.stringify({
+        type: 'job_status_changed',
+        jobId: params.id,
+        jobNo: existing.jobNo,
+        status: newStatus,
+        shopId: owningShopId,
+      })
+      Promise.all([
+        redis.publish(`shop:${owningShopId}`, ssePayload),
+        prisma.notification.create({
+          data: {
+            shopId: owningShopId,
+            type: 'job_status_changed',
+            jobId: params.id,
+            message: buildNotificationMessage('job_status_changed', existing.jobNo, undefined, newStatus),
+          },
+        }),
+      ]).catch((err) => console.error('[SSE emit job_status_changed]', err))
     }
 
     return NextResponse.json(updated)
