@@ -16,6 +16,12 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
   app:
     build:
       context: .
@@ -24,6 +30,7 @@ services:
     environment:
       DATABASE_URL: postgresql://ddreport:ddreport_pass@postgres:5432/ddreport
       NODE_ENV: production
+      REDIS_URL: redis://redis:6379
       UPLOADS_DIR: /uploads
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_TRUST_HOST: "true"
@@ -32,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   nginx:
     image: nginx:alpine
@@ -47,4 +56,5 @@ services:
 
 volumes:
   pg_data:
+  redis_data:
   uploads_data:
