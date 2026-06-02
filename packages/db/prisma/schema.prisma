@@ -47,6 +47,7 @@ model Shop {
   partnerOf        ShopPartner[]   @relation("PartnerShops")
   jobTransfersFrom JobTransfer[]   @relation("JobTransferFrom")
   jobTransfersTo   JobTransfer[]   @relation("JobTransferTo")
+  notifications    Notification[]
   createdAt        DateTime        @default(now())
 }
 
@@ -90,7 +91,8 @@ model Job {
   createdAt    DateTime  @default(now())
   images       Image[]
   jobParts     JobPart[]
-  transfer     JobTransfer?
+  transfer      JobTransfer?
+  notifications Notification[]
 }
 
 model Image {
@@ -223,4 +225,19 @@ model JobTransfer {
 
   @@index([fromShopId])
   @@index([toShopId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  type      String
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([shopId, isRead])
+  @@index([shopId, createdAt])
 }
