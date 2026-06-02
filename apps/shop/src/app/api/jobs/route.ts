@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateJobNo } from '@/lib/jobNo'
 import { auth } from '@/auth'
+import { redis } from '@/lib/redis'
+import { buildNotificationMessage } from '@/lib/notificationUtils'
 
 /* ─── POST /api/jobs ─────────────────────────────────────────────────────── */
 export async function POST(request: NextRequest) {
@@ -59,6 +61,25 @@ export async function POST(request: NextRequest) {
 
       return created
     })
+
+    // Emit SSE event + create notification (non-blocking)
+    const ssePayload = JSON.stringify({
+      type: 'job_created',
+      jobId: job.id,
+      jobNo: job.jobNo,
+      shopId,
+    })
+    Promise.all([
+      redis.publish(`shop:${shopId}`, ssePayload),
+      prisma.notification.create({
+        data: {
+          shopId,
+          type: 'job_created',
+          jobId: job.id,
+          message: buildNotificationMessage('job_created', job.jobNo, String(licensePlate)),
+        },
+      }),
+    ]).catch((err) => console.error('[SSE emit job_created]', err))
 
     return NextResponse.json({ id: job.id, jobNo: job.jobNo }, { status: 201 })
   } catch (err) {
