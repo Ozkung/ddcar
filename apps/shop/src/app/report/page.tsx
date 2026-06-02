@@ -49,6 +49,17 @@ export default function ReportPage() {
 
   const isFilterChange = useRef(false)
 
+  const buildParams = useCallback(() => {
+    const p = new URLSearchParams()
+    p.set('page', String(page))
+    p.set('pageSize', String(pageSize))
+    if (search)   p.set('search', search)
+    if (status)   p.set('status', status)
+    if (dateFrom) p.set('dateFrom', dateFrom)
+    if (dateTo)   p.set('dateTo', dateTo)
+    return p
+  }, [page, pageSize, search, status, dateFrom, dateTo])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -69,17 +80,6 @@ export default function ReportPage() {
       fetchData()
     }
   })
-
-  const buildParams = useCallback(() => {
-    const p = new URLSearchParams()
-    p.set('page', String(page))
-    p.set('pageSize', String(pageSize))
-    if (search)   p.set('search', search)
-    if (status)   p.set('status', status)
-    if (dateFrom) p.set('dateFrom', dateFrom)
-    if (dateTo)   p.set('dateTo', dateTo)
-    return p
-  }, [page, pageSize, search, status, dateFrom, dateTo])
 
   // When filters change: reset to page 1 and fetch
   useEffect(() => {
