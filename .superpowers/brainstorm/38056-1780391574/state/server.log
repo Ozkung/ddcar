@@ -1,0 +1,14 @@
+{"type":"server-started","port":65260,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:65260","screen_dir":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content","state_dir":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/state"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/toggle-placement.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/waiting-1.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/sse-notification.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/notification-bell.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/notification-bell-v2.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/waiting-2.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/infra-compare.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/aws-infra.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/aws-infra-pricing.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/subscription-pricing.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/zero-customer-strategy.html"}
+{"type":"screen-added","file":"/Users/tae/Desktop/playground/ddcar/.superpowers/brainstorm/38056-1780391574/content/lightsail-strategy.html"}
+{"type":"server-stopped","reason":"idle timeout"}

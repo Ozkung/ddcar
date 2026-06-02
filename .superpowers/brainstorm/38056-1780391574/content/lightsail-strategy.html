@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lightsail Strategy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; min-height: 100vh; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 20px; }
+
+  /* Lightsail current box */
+  .lightsail-box {
+    background: #0d1b2a; border: 2px solid #f59e0b; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .ls-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .ls-title { font-size: 14px; font-weight: 800; color: #fcd34d; }
+  .ls-badge { background: #451a03; color: #fbbf24; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+  .ls-specs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ls-spec { background: #1a1a0a; border: 1px solid #451a03; border-radius: 6px; padding: 5px 10px; font-size: 10px; font-weight: 600; color: #fcd34d; }
+
+  /* Docker compose stack inside Lightsail */
+  .docker-stack { background: #0f1a0a; border: 1px dashed #16a34a; border-radius: 8px; padding: 10px 12px; }
+  .docker-title { font-size: 9px; font-weight: 700; color: #4ade80; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .docker-services { display: flex; gap: 8px; }
+  .svc-box { flex: 1; border-radius: 6px; padding: 8px 10px; font-size: 10px; }
+  .svc-app   { background: #0d1a30; border: 1px solid #1d4ed8; }
+  .svc-pg    { background: #0d2010; border: 1px solid #15803d; }
+  .svc-redis { background: #2a0d0d; border: 1px solid #b91c1c; }
+  .svc-nginx { background: #1a1a0a; border: 1px solid #78716c; }
+  .svc-name { font-weight: 700; margin-bottom: 2px; }
+  .svc-detail { font-size: 9px; opacity: 0.6; line-height: 1.5; }
+
+  /* Migration path */
+  .migration { display: flex; align-items: stretch; gap: 0; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+  .mig-step { display: flex; flex-direction: column; align-items: center; }
+  .mig-card { border-radius: 8px; padding: 10px 12px; width: 160px; flex-shrink: 0; }
+  .mig-arrow { display: flex; align-items: center; padding: 0 4px; color: #334155; font-size: 20px; flex-shrink: 0; margin-top: -20px; }
+  .mig-trigger { font-size: 8px; color: #f59e0b; text-align: center; width: 160px; margin-top: 4px; line-height: 1.4; padding: 0 4px; }
+
+  .mig-now  { background: #1a1008; border: 2px solid #f59e0b; }
+  .mig-1    { background: #0d1520; border: 1px solid #1d4ed8; }
+  .mig-2    { background: #150d2a; border: 1px solid #5b21b6; }
+  .mig-3    { background: #002010; border: 1px solid #065f46; }
+
+  .mig-phase { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .mig-name  { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .mig-cost  { font-size: 14px; font-weight: 800; line-height: 1; }
+  .mig-when  { font-size: 9px; margin-top: 4px; }
+  .mig-stack { font-size: 9px; color: #475569; margin-top: 6px; line-height: 1.6; }
+
+  /* Limits table */
+  .limits-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 16px; }
+  .limits-table th { padding: 6px 10px; background: #0d1b2a; color: #475569; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #1e293b; }
+  .limits-table td { padding: 6px 10px; border-bottom: 1px solid #0f1a2e; color: #94a3b8; }
+  .limits-table td:first-child { color: #64748b; }
+  .ok   { color: #10b981; font-weight: 700; }
+  .warn { color: #f59e0b; font-weight: 700; }
+  .bad  { color: #ef4444; font-weight: 700; }
+
+  .note { font-size: 10px; color: #64748b; background: #0d1b2a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; line-height: 1.7; }
+  .note strong { color: #94a3b8; }
+  .green { color: #10b981; font-weight: 700; }
+  .amber { color: #fbbf24; font-weight: 700; }
+  .red   { color: #f87171; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h2>Lightsail $10/mo — Setup ปัจจุบัน</h2>
+<p class="subtitle">ใช้ที่มีอยู่แล้วให้คุ้ม · ค่อย migrate เมื่อถึงเวลา</p>
+
+<!-- Lightsail current -->
+<div class="lightsail-box">
+  <div class="ls-header">
+    <div>
+      <div class="ls-title">AWS Lightsail $10/month (~฿365)</div>
+      <div style="font-size:10px;color:#64748b;margin-top:2px">Singapore (ap-southeast-1) · Static IP ฟรี</div>
+    </div>
+    <div class="ls-badge">ใช้อยู่ตอนนี้</div>
+  </div>
+  <div class="ls-specs">
+    <div class="ls-spec">2 vCPU</div>
+    <div class="ls-spec">2 GB RAM</div>
+    <div class="ls-spec">60 GB SSD</div>
+    <div class="ls-spec">3 TB transfer</div>
+    <div class="ls-spec">Static IP</div>
+  </div>
+
+  <div class="docker-stack">
+    <div class="docker-title">Docker Compose stack ที่จะรันบน Lightsail</div>
+    <div class="docker-services">
+      <div class="svc-box svc-app">
+        <div class="svc-name" style="color:#93c5fd">apps/shop</div>
+        <div class="svc-detail">Next.js :3000<br/>~300MB RAM</div>
+      </div>
+      <div class="svc-box svc-pg">
+        <div class="svc-name" style="color:#6ee7b7">PostgreSQL</div>
+        <div class="svc-detail">:5432<br/>~200MB RAM</div>
+      </div>
+      <div class="svc-box svc-redis">
+        <div class="svc-name" style="color:#fca5a5">Redis</div>
+        <div class="svc-detail">:6379<br/>~30MB RAM</div>
+      </div>
+      <div class="svc-box svc-nginx">
+        <div class="svc-name" style="color:#d6d3d1">Nginx</div>
+        <div class="svc-detail">:443 / :80<br/>SSL termination</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:9px;color:#4ade80">
+      รวมใช้ RAM ~600MB จาก 2GB · เหลือ headroom ~1.4GB · รองรับ 5–15 shops พร้อมกันได้สบาย
+    </div>
+  </div>
+</div>
+
+<!-- Migration path horizontal -->
+<div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Migration Path ตามรายได้</div>
+<div class="migration">
+
+  <div class="mig-step">
+    <div class="mig-card mig-now">
+      <div class="mig-phase" style="color:#f59e0b">ตอนนี้</div>
+      <div class="mig-name" style="color:#fcd34d">Lightsail</div>
+      <div class="mig-cost" style="color:#f59e0b">$10<span style="font-size:9px;color:#64748b">/mo</span></div>
+      <div class="mig-when" style="color:#64748b">฿365/เดือน</div>
+      <div class="mig-stack">Docker Compose<br/>App+PG+Redis+Nginx</div>
+    </div>
+    <div class="mig-trigger">ลูกค้าจ่ายเงิน 3+ ร้าน<br/>หรือ RAM > 80%</div>
+  </div>
+
+  <div class="mig-arrow">→</div>
+
+  <div class="mig-step">
+    <div class="mig-card mig-1">
+      <div class="mig-phase" style="color:#93c5fd">Phase 1</div>
+      <div class="mig-name" style="color:#93c5fd">Lightsail $20</div>
+      <div class="mig-cost" style="color:#3b82f6">$20<span style="font-size:9px;color:#64748b">/mo</span></div>
+      <div class="mig-when" style="color:#64748b">฿730/เดือน</div>
+      <div class="mig-stack">4 vCPU · 4GB RAM<br/>Upgrade plan เดิม<br/>ไม่ต้อง migrate</div>
+    </div>
+    <div class="mig-trigger">10+ ร้าน<br/>รายได้ ฿8,000+/mo</div>
+  </div>
+
+  <div class="mig-arrow">→</div>
+
+  <div class="mig-step">
+    <div class="mig-card mig-2">
+      <div class="mig-phase" style="color:#c4b5fd">Phase 2</div>
+      <div class="mig-name" style="color:#c4b5fd">EC2 + RDS</div>
+      <div class="mig-cost" style="color:#a78bfa">~$65<span style="font-size:9px;color:#64748b">/mo</span></div>
+      <div class="mig-when" style="color:#64748b">฿2,400/เดือน</div>
+      <div class="mig-stack">EC2 t3.small<br/>RDS t4g.micro<br/>ElastiCache + S3</div>
+    </div>
+    <div class="mig-trigger">20+ ร้าน หรือต้องการ<br/>managed DB backup</div>
+  </div>
+
+  <div class="mig-arrow">→</div>
+
+  <div class="mig-step">
+    <div class="mig-card mig-3">
+      <div class="mig-phase" style="color:#6ee7b7">Phase 3</div>
+      <div class="mig-name" style="color:#6ee7b7">ECS + Full AWS</div>
+      <div class="mig-cost" style="color:#10b981">~$187<span style="font-size:9px;color:#64748b">/mo</span></div>
+      <div class="mig-when" style="color:#64748b">฿6,800/เดือน</div>
+      <div class="mig-stack">ECS Fargate · ALB<br/>Multi-AZ RDS<br/>CloudFront</div>
+    </div>
+    <div class="mig-trigger">30+ ร้าน<br/>รายได้ ฿45,000+/mo</div>
+  </div>
+
+</div>
+
+<!-- Lightsail limits -->
+<div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Lightsail — รู้ข้อจำกัดก่อน</div>
+<table class="limits-table">
+  <tr>
+    <th>หัวข้อ</th>
+    <th>สถานะ</th>
+    <th>รายละเอียด</th>
+  </tr>
+  <tr>
+    <td>รัน Docker Compose</td>
+    <td class="ok">ได้ ✓</td>
+    <td>ติดตั้ง Docker บน Lightsail instance ได้ปกติ</td>
+  </tr>
+  <tr>
+    <td>Redis container</td>
+    <td class="ok">ได้ ✓</td>
+    <td>เพิ่ม redis service ใน docker-compose.yml เลย</td>
+  </tr>
+  <tr>
+    <td>SSL / HTTPS</td>
+    <td class="ok">ได้ ✓</td>
+    <td>Nginx + Let's Encrypt หรือ Lightsail cert ฟรี</td>
+  </tr>
+  <tr>
+    <td>Static IP</td>
+    <td class="ok">ฟรี ✓</td>
+    <td>Attach static IP กับ instance ได้ฟรี 1 IP</td>
+  </tr>
+  <tr>
+    <td>Backup อัตโนมัติ</td>
+    <td class="warn">จำกัด ⚠</td>
+    <td>Snapshot manual หรือ automatic $0.05/GB · ไม่ใช่ managed DB</td>
+  </tr>
+  <tr>
+    <td>Scale ขึ้นได้ไหม</td>
+    <td class="warn">ต้อง stop ⚠</td>
+    <td>Upgrade plan ต้อง stop instance ~2-5 นาที downtime</td>
+  </tr>
+  <tr>
+    <td>Multi-instance SSE</td>
+    <td class="warn">ต้องระวัง ⚠</td>
+    <td>Lightsail ไม่มี LB ดั้งเดิม · ถ้าขยายต้องใช้ Redis (มีอยู่แล้ว)</td>
+  </tr>
+  <tr>
+    <td>Connect กับ AWS services</td>
+    <td class="warn">จำกัด ⚠</td>
+    <td>Lightsail อยู่ใน VPC แยก · ต้อง VPC peering ถ้าจะใช้ RDS/ElastiCache</td>
+  </tr>
+  <tr>
+    <td>S3 uploads</td>
+    <td class="ok">ได้ ✓</td>
+    <td>Lightsail เรียก S3 API ได้ผ่าน IAM role · ไม่ต้อง VPC peering</td>
+  </tr>
+</table>
+
+<div class="note">
+  <strong>แนะนำสำหรับตอนนี้:</strong> ใช้ Lightsail $10 ที่มีอยู่ได้เลย · เพิ่ม Redis service ใน <code style="background:#1e293b;padding:1px 4px;border-radius:3px;font-size:9px">docker-compose.yml</code> · ใช้ local volume สำหรับ uploads ก่อน (S3 ทำทีหลังตอน Phase 2) ·
+  <span class="green">ค่าใช้จ่ายคงที่ $10/เดือน</span> จนกว่าจะมีลูกค้าพอ ·
+  <span class="amber">ข้อควรระวัง:</span> ทำ snapshot backup ทุกอาทิตย์ เพราะ Lightsail ไม่มี managed DB · ถ้า disk เสีย ข้อมูลหาย ·
+  Phase 1 แค่ <span class="green">upgrade plan จาก $10 → $20</span> ใน Lightsail console ไม่ต้อง migrate เลย
+</div>
+
+</body>
+</html>

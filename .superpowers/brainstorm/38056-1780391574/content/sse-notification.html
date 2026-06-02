@@ -1,0 +1,91 @@
+<h2>SSE — เมื่อมีงานใหม่ หน้า Report ทำอะไร?</h2>
+<p class="subtitle">เลือก UX pattern ที่เหมาะกับการใช้งานในอู่</p>
+
+<div class="cards">
+
+  <!-- Option A: Silent auto-refresh -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1e3a8a;padding:8px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;font-size:11px;">
+        <span style="color:white;font-weight:700">🔧 ดีดีช่างยนต์</span>
+        <span style="color:rgba(255,255,255,0.7)">รับรถเข้าซ่อม</span>
+        <span style="color:rgba(255,255,255,0.7)">รายงาน</span>
+        <span style="flex:1"></span>
+        <span style="color:rgba(255,255,255,0.85)">👤 สมชาย</span>
+      </div>
+      <div style="background:#f8fafc;padding:12px;border-radius:0 0 8px 8px;font-size:11px">
+        <div style="background:white;border-radius:6px;border:1px solid #e2e8f0;overflow:hidden">
+          <div style="background:#f8fafc;padding:6px 10px;font-weight:600;color:#334155;font-size:10px;border-bottom:1px solid #e2e8f0">รายงานงานซ่อม</div>
+          <div style="padding:6px 10px;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;color:#475569">
+            <span style="color:#2563eb;font-weight:600">JB-001</span><span>สมชาย</span><span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:3px">ซ่อมอยู่</span>
+          </div>
+          <div style="padding:6px 10px;display:flex;gap:8px;color:#475569;background:#f0fdf4">
+            <span style="color:#16a34a;font-weight:600">JB-002 ✨</span><span>วิภา</span><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:3px">ใหม่</span>
+          </div>
+        </div>
+        <div style="text-align:center;color:#94a3b8;font-size:10px;margin-top:6px">— ตารางอัปเดตอัตโนมัติเงียบ ๆ —</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Auto-refresh เงียบ ๆ</h3>
+      <p>ตารางอัปเดตทันทีโดยไม่แจ้ง ข้อมูลเป็นปัจจุบันตลอด แต่อาจสับสนถ้าตารางเลื่อน</p>
+    </div>
+  </div>
+
+  <!-- Option B: Banner + manual refresh -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1e3a8a;padding:8px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;font-size:11px;">
+        <span style="color:white;font-weight:700">🔧 ดีดีช่างยนต์</span>
+        <span style="color:rgba(255,255,255,0.7)">รับรถเข้าซ่อม</span>
+        <span style="color:rgba(255,255,255,0.7)">รายงาน</span>
+        <span style="flex:1"></span>
+        <span style="color:rgba(255,255,255,0.85)">👤 สมชาย</span>
+      </div>
+      <div style="background:#f8fafc;padding:12px;border-radius:0 0 8px 8px;font-size:11px">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#1d4ed8">📋 มีงานใหม่ 2 รายการ</span>
+          <span style="background:#2563eb;color:white;border-radius:4px;padding:2px 8px;cursor:pointer">โหลดใหม่</span>
+        </div>
+        <div style="background:white;border-radius:6px;border:1px solid #e2e8f0;overflow:hidden">
+          <div style="padding:6px 10px;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;color:#475569">
+            <span style="color:#2563eb;font-weight:600">JB-001</span><span>สมชาย</span><span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:3px">ซ่อมอยู่</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Banner แจ้ง + ปุ่มโหลดใหม่</h3>
+      <p>แสดง banner "มีงานใหม่ N รายการ" ให้กดโหลดเอง ตารางไม่กระตุก user คุมเอง</p>
+    </div>
+  </div>
+
+  <!-- Option C: Nav badge only -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1e3a8a;padding:8px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:10px;font-size:11px;">
+        <span style="color:white;font-weight:700">🔧 ดีดีช่างยนต์</span>
+        <span style="color:rgba(255,255,255,0.7)">รับรถเข้าซ่อม</span>
+        <span style="color:rgba(255,255,255,0.7);position:relative">
+          รายงาน
+          <span style="position:absolute;top:-6px;right:-10px;background:#ef4444;color:white;border-radius:50%;font-size:9px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700">2</span>
+        </span>
+        <span style="flex:1"></span>
+        <span style="color:rgba(255,255,255,0.85)">👤 สมชาย</span>
+      </div>
+      <div style="background:#f8fafc;padding:12px;border-radius:0 0 8px 8px;font-size:11px">
+        <div style="background:white;border-radius:6px;border:1px solid #e2e8f0;overflow:hidden">
+          <div style="padding:6px 10px;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;color:#475569">
+            <span style="color:#2563eb;font-weight:600">JB-001</span><span>สมชาย</span><span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:3px">ซ่อมอยู่</span>
+          </div>
+        </div>
+        <div style="text-align:center;color:#94a3b8;font-size:10px;margin-top:6px">— ตารางไม่เปลี่ยน จนกว่าจะเข้าหน้ารายงาน —</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Nav Badge อย่างเดียว</h3>
+      <p>แค่แสดง badge แดงบน "รายงาน" ใน nav เมื่อมีงานใหม่ กด nav แล้วตารางโหลดสด</p>
+    </div>
+  </div>
+
+</div>

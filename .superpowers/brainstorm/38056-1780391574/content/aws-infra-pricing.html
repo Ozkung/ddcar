@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Pricing — ddcar</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; min-height: 100vh; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 20px; }
+
+  .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+
+  .tier-card {
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .tier-starter { background: rgba(15,23,42,0.8); border: 1px solid #1e3a5f; }
+  .tier-growth  { background: rgba(30,26,60,0.8); border: 1px solid #4c1d95; }
+  .tier-scale   { background: rgba(5,25,15,0.8);  border: 1px solid #065f46; }
+
+  .tier-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .tier-name { font-size: 13px; font-weight: 700; }
+  .tier-desc { font-size: 9px; opacity: 0.6; margin-top: 2px; }
+  .tier-price { text-align: right; }
+  .tier-price .amount { font-size: 22px; font-weight: 800; line-height: 1; }
+  .tier-price .currency { font-size: 10px; opacity: 0.6; }
+  .tier-price .thb { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+
+  .price-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .price-table th { text-align: left; color: #475569; font-weight: 600; padding: 4px 6px; border-bottom: 1px solid #1e293b; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .price-table td { padding: 5px 6px; border-bottom: 1px solid #0f1a2e; vertical-align: top; line-height: 1.4; }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price-table .svc { color: #94a3b8; font-weight: 600; white-space: nowrap; }
+  .price-table .spec { color: #64748b; font-size: 9px; }
+  .price-table .price { text-align: right; font-weight: 700; white-space: nowrap; }
+  .price-table .price-lo { color: #3b82f6; }
+  .price-table .price-mid { color: #a78bfa; }
+  .price-table .price-hi  { color: #10b981; }
+
+  .total-row td { background: #1e293b; font-weight: 700; font-size: 11px; border-radius: 4px; }
+
+  .badge { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 4px; display: inline-block; }
+  .badge-new      { background: #064e3b; color: #6ee7b7; }
+  .badge-change   { background: #451a03; color: #fbbf24; }
+  .badge-free     { background: #1e1b4b; color: #a5b4fc; }
+
+  .note { font-size: 10px; color: #64748b; background: #0f1a2e; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 14px; line-height: 1.7; margin-bottom: 14px; }
+  .note strong { color: #94a3b8; }
+  .note .highlight { color: #fbbf24; font-weight: 600; }
+
+  /* Architecture mini diagram */
+  .arch { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; font-size: 10px; }
+  .arch-box { padding: 5px 10px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+  .arch-arrow { color: #334155; font-size: 14px; }
+
+  .section-label { font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 16px; }
+
+  .comparison-row { display: flex; gap: 10px; margin-top: 8px; }
+  .cmp-box { flex: 1; border-radius: 8px; padding: 10px 12px; font-size: 10px; }
+  .cmp-a { background: rgba(37,99,235,0.1); border: 1px solid #1d4ed8; }
+  .cmp-c { background: rgba(124,58,237,0.1); border: 1px solid #6d28d9; }
+  .cmp-title { font-weight: 700; margin-bottom: 4px; }
+  .cmp-price { font-size: 14px; font-weight: 800; margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h2>AWS Cost Estimate — ddcar (ap-southeast-1 · Singapore)</h2>
+<p class="subtitle">ราคาต่อเดือน · ยังไม่รวม VAT · คำนวณจาก AWS Pricing Calculator</p>
+
+<!-- Architecture Flow -->
+<div class="arch">
+  <div class="arch-box" style="background:#1a2744;color:#93c5fd;border:1px solid #2563eb">Route 53</div>
+  <span class="arch-arrow">→</span>
+  <div class="arch-box" style="background:#1a1a2e;color:#a5b4fc;border:1px solid #6366f1">CloudFront</div>
+  <span class="arch-arrow">→</span>
+  <div class="arch-box" style="background:#1c1f3a;color:#c7d2fe;border:1px solid #818cf8">ALB</div>
+  <span class="arch-arrow">→</span>
+  <div class="arch-box" style="background:#1e1a3a;color:#c4b5fd;border:1px solid #7c3aed">ECS Fargate</div>
+  <span class="arch-arrow">→</span>
+  <div class="arch-box" style="background:#0f2a1e;color:#6ee7b7;border:1px solid #10b981">RDS</div>
+  <span class="arch-arrow">+</span>
+  <div class="arch-box" style="background:#2a1010;color:#fca5a5;border:1px solid #ef4444">Redis</div>
+  <span class="arch-arrow">+</span>
+  <div class="arch-box" style="background:#2a1c0a;color:#fcd34d;border:1px solid #f59e0b">S3</div>
+</div>
+
+<!-- 3 Tiers -->
+<div class="tier-grid">
+
+  <!-- Starter -->
+  <div class="tier-card tier-starter">
+    <div class="tier-header">
+      <div>
+        <div class="tier-name" style="color:#93c5fd">Starter</div>
+        <div class="tier-desc">1 shop · &lt; 100 req/min · เริ่มต้น</div>
+      </div>
+      <div class="tier-price">
+        <div class="amount" style="color:#3b82f6">$97</div>
+        <div class="currency">/month</div>
+        <div class="thb">~฿3,500</div>
+      </div>
+    </div>
+    <table class="price-table">
+      <tr><th>Service</th><th>Spec</th><th class="price">$/mo</th></tr>
+      <tr>
+        <td class="svc">ECS Fargate</td>
+        <td><div class="spec">1 task · 0.5 vCPU · 1 GB</div></td>
+        <td class="price price-lo">$11</td>
+      </tr>
+      <tr>
+        <td class="svc">RDS PostgreSQL</td>
+        <td><div class="spec">db.t4g.micro · 20 GB · single-AZ</div></td>
+        <td class="price price-lo">$16</td>
+      </tr>
+      <tr>
+        <td class="svc">ElastiCache</td>
+        <td><div class="spec">cache.t4g.micro · Redis 7</div></td>
+        <td class="price price-lo">$12</td>
+      </tr>
+      <tr>
+        <td class="svc">ALB</td>
+        <td><div class="spec">1 ALB · low traffic</div></td>
+        <td class="price price-lo">$19</td>
+      </tr>
+      <tr>
+        <td class="svc">CloudFront</td>
+        <td><div class="spec">10 GB transfer · 1M req</div></td>
+        <td class="price price-lo">$4</td>
+      </tr>
+      <tr>
+        <td class="svc">S3</td>
+        <td><div class="spec">10 GB storage · uploads</div></td>
+        <td class="price price-lo">$1</td>
+      </tr>
+      <tr>
+        <td class="svc">Route 53</td>
+        <td><div class="spec">1 hosted zone</div></td>
+        <td class="price price-lo">$1</td>
+      </tr>
+      <tr>
+        <td class="svc">ECR + Secrets</td>
+        <td><div class="spec">image storage + secrets</div></td>
+        <td class="price price-lo">$4</td>
+      </tr>
+      <tr>
+        <td class="svc">GitHub Actions</td>
+        <td><div class="spec">free tier (2,000 min/mo)</div></td>
+        <td class="price"><span class="badge badge-free">ฟรี</span></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2" style="color:#93c5fd">รวม</td>
+        <td class="price" style="color:#3b82f6">~$68</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Growth -->
+  <div class="tier-card tier-growth">
+    <div class="tier-header">
+      <div>
+        <div class="tier-name" style="color:#c4b5fd">Growth</div>
+        <div class="tier-desc">หลายร้าน · HA · แนะนำ production</div>
+      </div>
+      <div class="tier-price">
+        <div class="amount" style="color:#a78bfa">$185</div>
+        <div class="currency">/month</div>
+        <div class="thb">~฿6,700</div>
+      </div>
+    </div>
+    <table class="price-table">
+      <tr><th>Service</th><th>Spec</th><th class="price">$/mo</th></tr>
+      <tr>
+        <td class="svc">ECS Fargate</td>
+        <td><div class="spec">2 tasks · 1 vCPU · 2 GB each</div></td>
+        <td class="price price-mid">$82</td>
+      </tr>
+      <tr>
+        <td class="svc">RDS PostgreSQL</td>
+        <td><div class="spec">db.t4g.small · 50 GB · <strong style="color:#fbbf24">Multi-AZ</strong></div></td>
+        <td class="price price-mid">$57</td>
+      </tr>
+      <tr>
+        <td class="svc">ElastiCache</td>
+        <td><div class="spec">cache.t4g.micro · Redis 7</div></td>
+        <td class="price price-mid">$12</td>
+      </tr>
+      <tr>
+        <td class="svc">ALB</td>
+        <td><div class="spec">1 ALB · moderate traffic</div></td>
+        <td class="price price-mid">$22</td>
+      </tr>
+      <tr>
+        <td class="svc">CloudFront</td>
+        <td><div class="spec">50 GB transfer · 5M req</div></td>
+        <td class="price price-mid">$7</td>
+      </tr>
+      <tr>
+        <td class="svc">S3</td>
+        <td><div class="spec">30 GB storage</div></td>
+        <td class="price price-mid">$2</td>
+      </tr>
+      <tr>
+        <td class="svc">Route 53 + ECR</td>
+        <td><div class="spec">+ Secrets Manager</div></td>
+        <td class="price price-mid">$5</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2" style="color:#c4b5fd">รวม</td>
+        <td class="price" style="color:#a78bfa">~$187</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Scale -->
+  <div class="tier-card tier-scale">
+    <div class="tier-header">
+      <div>
+        <div class="tier-name" style="color:#6ee7b7">Scale</div>
+        <div class="tier-desc">SaaS หลายร้าน · high traffic</div>
+      </div>
+      <div class="tier-price">
+        <div class="amount" style="color:#10b981">$380</div>
+        <div class="currency">/month</div>
+        <div class="thb">~฿13,800</div>
+      </div>
+    </div>
+    <table class="price-table">
+      <tr><th>Service</th><th>Spec</th><th class="price">$/mo</th></tr>
+      <tr>
+        <td class="svc">ECS Fargate</td>
+        <td><div class="spec">4 tasks · 1 vCPU · 2 GB each</div></td>
+        <td class="price price-hi">$164</td>
+      </tr>
+      <tr>
+        <td class="svc">RDS PostgreSQL</td>
+        <td><div class="spec">db.t4g.medium · 100 GB · Multi-AZ</div></td>
+        <td class="price price-hi">$113</td>
+      </tr>
+      <tr>
+        <td class="svc">ElastiCache</td>
+        <td><div class="spec">cache.t4g.small · Redis 7</div></td>
+        <td class="price price-hi">$25</td>
+      </tr>
+      <tr>
+        <td class="svc">ALB</td>
+        <td><div class="spec">1 ALB · high traffic</div></td>
+        <td class="price price-hi">$30</td>
+      </tr>
+      <tr>
+        <td class="svc">CloudFront</td>
+        <td><div class="spec">200 GB · 20M req</div></td>
+        <td class="price price-hi">$26</td>
+      </tr>
+      <tr>
+        <td class="svc">S3</td>
+        <td><div class="spec">100 GB storage</div></td>
+        <td class="price price-hi">$5</td>
+      </tr>
+      <tr>
+        <td class="svc">Route 53 + ECR</td>
+        <td><div class="spec">+ Secrets Manager</div></td>
+        <td class="price price-hi">$7</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2" style="color:#6ee7b7">รวม</td>
+        <td class="price" style="color:#10b981">~$370</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<!-- SSE Redis note -->
+<div class="section-label">Redis ใน Option A vs Option C — ต่างกันอย่างไรในแง่ราคา</div>
+<div class="comparison-row">
+  <div class="cmp-box cmp-a">
+    <div class="cmp-title" style="color:#93c5fd">Option A — In-memory (ไม่มี Redis)</div>
+    <div class="cmp-price" style="color:#3b82f6">-$12/mo</div>
+    <div style="color:#64748b;font-size:9px;line-height:1.6">ประหยัดค่า ElastiCache แต่ต้อง sticky session บน ALB · scale ไม่สม่ำเสมอ · เมื่อ task ตาย user ที่เชื่อมอยู่ disconnect</div>
+  </div>
+  <div class="cmp-box cmp-c">
+    <div class="cmp-title" style="color:#c4b5fd">Option C — Redis Pub/Sub (ElastiCache)</div>
+    <div class="cmp-price" style="color:#a78bfa">+$12/mo</div>
+    <div style="color:#64748b;font-size:9px;line-height:1.6">cache.t4g.micro $12/mo · scale ได้สมบูรณ์ · task ใหม่ subscribe Redis ได้ทันที · EventSource reconnect อัตโนมัติ ไม่มี event หาย</div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:12px">
+  <strong>แนะนำ:</strong> เริ่มที่ <span class="highlight">Starter tier + Option C (Redis)</span> ราคา ~$68/mo · ตอน scale เพิ่ม ECS task ได้เลยโดยไม่ต้องแก้ logic · Redis ที่จ่ายไป $12 ตั้งแต่ต้นคุ้มกว่า refactor ทีหลัง<br/>
+  <strong>S3 uploads:</strong> ต้องแก้ upload API จาก local filesystem เป็น pre-signed URL ด้วย — ควรทำพร้อม AWS migration ไม่ใช่หลัง<br/>
+  <strong>ราคาเป็นประมาณการ</strong> · ขึ้นอยู่กับ traffic จริง · ใช้ AWS Cost Explorer หลัง deploy 1 เดือนเพื่อ right-size
+</div>
+
+</body>
+</html>

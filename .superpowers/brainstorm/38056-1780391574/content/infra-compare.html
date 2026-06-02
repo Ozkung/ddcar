@@ -1,0 +1,117 @@
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded', () => lucide.createIcons())</script>
+
+<style>
+.icon { width:14px;height:14px;display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round }
+.box { border-radius:8px;padding:8px 12px;font-size:11px;font-weight:600;text-align:center }
+.arrow { display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px;font-weight:300;line-height:1 }
+.arrow-right { flex-direction:row;gap:2px }
+.arrow-down { flex-direction:column;gap:0 }
+.label { font-size:9px;color:#94a3b8;text-align:center;margin-top:2px }
+.section-title { font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px }
+.warn { background:#fef3c7;border:1px dashed #f59e0b;border-radius:6px;padding:6px 10px;font-size:10px;color:#92400e;margin-top:6px }
+.good { background:#f0fdf4;border:1px dashed #22c55e;border-radius:6px;padding:6px 10px;font-size:10px;color:#166534;margin-top:6px }
+</style>
+
+<h2>SSE Infrastructure: Option A vs Option C</h2>
+<p class="subtitle">เปรียบเทียบ architecture เมื่อ scale เป็น multi-instance</p>
+
+<div class="split" style="gap:20px;align-items:flex-start">
+
+  <!-- Option A: In-memory -->
+  <div class="mockup" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;flex:1">
+    <div class="mockup-header" style="background:#3b82f6">Option A — In-memory EventEmitter</div>
+    <div class="mockup-body" style="padding:16px">
+
+      <div class="section-title">Single instance (ปัจจุบัน) ✓</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:16px">
+        <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%">Browser (EventSource)</div>
+        <div class="arrow arrow-down">↕<span class="label">SSE</span></div>
+        <div class="box" style="background:#1e3a8a;color:white;width:100%">Node.js Process<br/><span style="font-weight:400;font-size:10px">in-memory Map&lt;shopId, Set&lt;Writer&gt;&gt;</span></div>
+        <div class="arrow arrow-down">↕</div>
+        <div class="box" style="background:#e2e8f0;color:#334155;width:100%">PostgreSQL</div>
+      </div>
+
+      <div class="section-title">Multi-instance (scale out) ✗</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%;font-size:10px">Browser A</div>
+          <div style="font-size:12px;color:#94a3b8">↕</div>
+          <div class="box" style="background:#1e3a8a;color:white;width:100%;font-size:10px">Server 1<br/><span style="font-size:9px;opacity:0.8">emitter (memory)</span></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%;font-size:10px">Browser B</div>
+          <div style="font-size:12px;color:#94a3b8">↕</div>
+          <div class="box" style="background:#1e3a8a;color:white;width:100%;font-size:10px">Server 2<br/><span style="font-size:9px;opacity:0.8">emitter (memory)</span></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center">
+        <div class="box" style="background:#e2e8f0;color:#334155;width:60%;font-size:10px">PostgreSQL</div>
+      </div>
+      <div class="warn">
+        <strong>ปัญหา:</strong> User A เชื่อม Server 1 อยู่<br/>
+        Mutation เกิดที่ Server 2<br/>
+        → emitter ของ Server 1 <strong>ไม่รู้</strong><br/>
+        → User A ไม่ได้รับ event
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:#64748b">
+        <strong>แก้ได้ด้วย:</strong> Sticky session (nginx ip_hash) — ผูก user กับ server เดิมเสมอ แต่ทำให้ load balance ไม่สม่ำเสมอ
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C: Redis -->
+  <div class="mockup" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer;flex:1">
+    <div class="mockup-header" style="background:#7c3aed">Option C — Redis Pub/Sub</div>
+    <div class="mockup-body" style="padding:16px">
+
+      <div class="section-title">Single instance (ปัจจุบัน) ✓</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:16px">
+        <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%">Browser (EventSource)</div>
+        <div class="arrow arrow-down">↕<span class="label">SSE</span></div>
+        <div class="box" style="background:#1e3a8a;color:white;width:100%">Node.js Process<br/><span style="font-weight:400;font-size:10px">subscribe Redis channel</span></div>
+        <div class="arrow arrow-down">↕</div>
+        <div style="display:flex;gap:8px;width:100%">
+          <div class="box" style="background:#e2e8f0;color:#334155;flex:1">PostgreSQL</div>
+          <div class="box" style="background:#fde68a;color:#92400e;flex:1">Redis</div>
+        </div>
+      </div>
+
+      <div class="section-title">Multi-instance (scale out) ✓</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%;font-size:10px">Browser A</div>
+          <div style="font-size:12px;color:#94a3b8">↕</div>
+          <div class="box" style="background:#1e3a8a;color:white;width:100%;font-size:10px">Server 1<br/><span style="font-size:9px;opacity:0.8">sub: shop:ABC</span></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="box" style="background:#dbeafe;color:#1d4ed8;width:100%;font-size:10px">Browser B</div>
+          <div style="font-size:12px;color:#94a3b8">↕</div>
+          <div class="box" style="background:#1e3a8a;color:white;width:100%;font-size:10px">Server 2<br/><span style="font-size:9px;opacity:0.8">sub: shop:ABC</span></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-bottom:6px">
+        <div style="font-size:11px;color:#94a3b8">↑ pub: shop:ABC ↑</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="box" style="background:#e2e8f0;color:#334155;flex:1;font-size:10px">PostgreSQL</div>
+        <div class="box" style="background:#fde68a;color:#92400e;flex:1;font-size:10px">Redis<br/><span style="font-size:9px">message bus</span></div>
+      </div>
+      <div class="good">
+        <strong>ทำงาน:</strong> Mutation เกิดที่ Server ไหนก็ได้<br/>
+        publish ไปที่ Redis → Redis broadcast ให้<br/>
+        ทุก Server ที่ subscribe → ทุก Browser ได้รับ
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:#64748b">
+        <strong>เพิ่มใน docker-compose:</strong> redis service 1 container<br/>
+        <strong>เพิ่ม dependency:</strong> ioredis (~45KB)<br/>
+        <strong>เพิ่ม logic:</strong> publish หลัง mutation, subscribe ใน /api/events
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:#f8fafc;border-radius:8px;padding:12px 16px;font-size:11px;color:#475569">
+  <strong>สรุป:</strong> ถ้าแผนคือ scale ออกแน่นอน → Option C ไม่ใช่ overkill แต่เป็น <strong>ลงทุนถูกที่</strong> ค่าใช้จ่ายคือ Redis container + ioredis + ~30 บรรทัด ประหยัดกว่า refactor ทีหลังมาก
+</div>

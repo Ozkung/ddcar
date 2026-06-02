@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero Customer Strategy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; min-height: 100vh; }
+
+  h2 { font-size: 1.2rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 20px; }
+
+  /* Phase roadmap */
+  .roadmap { display: flex; flex-direction: column; gap: 0; margin-bottom: 24px; }
+
+  .phase-row { display: flex; gap: 14px; align-items: stretch; }
+  .phase-connector { display: flex; flex-direction: column; align-items: center; width: 32px; flex-shrink: 0; }
+  .phase-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+  .phase-line { width: 2px; flex: 1; min-height: 20px; }
+
+  .phase-body { flex: 1; padding-bottom: 20px; }
+  .phase-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .phase-title { font-size: 13px; font-weight: 700; }
+  .phase-when { font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .phase-card { border-radius: 10px; padding: 12px 14px; }
+
+  /* Phase 0 */
+  .dot-0  { background: #1e293b; color: #475569; border: 2px solid #334155; }
+  .line-0 { background: linear-gradient(to bottom, #334155, #1d4ed8); }
+  .card-0 { background: #0d1b2a; border: 1px solid #1e3a5f; }
+  .when-0 { background: #1e293b; color: #475569; }
+
+  /* Phase 1 */
+  .dot-1  { background: #1d4ed8; color: white; border: 2px solid #3b82f6; }
+  .line-1 { background: linear-gradient(to bottom, #1d4ed8, #7c3aed); }
+  .card-1 { background: #0d1520; border: 1px solid #1d4ed8; }
+  .when-1 { background: #1e3a5f; color: #93c5fd; }
+
+  /* Phase 2 */
+  .dot-2  { background: #7c3aed; color: white; border: 2px solid #a78bfa; }
+  .line-2 { background: linear-gradient(to bottom, #7c3aed, #059669); }
+  .card-2 { background: #150d2a; border: 1px solid #5b21b6; }
+  .when-2 { background: #2e1065; color: #c4b5fd; }
+
+  /* Phase 3 */
+  .dot-3  { background: #059669; color: white; border: 2px solid #10b981; }
+  .card-3 { background: #002010; border: 1px solid #065f46; }
+  .when-3 { background: #064e3b; color: #6ee7b7; }
+
+  .infra-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .infra-box { font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+
+  .cost-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .cost-label { font-size: 9px; color: #64748b; }
+  .cost-value { font-size: 13px; font-weight: 800; }
+  .cost-revenue { font-size: 10px; color: #64748b; }
+
+  .detail-list { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .detail-list li { font-size: 10px; color: #64748b; display: flex; gap: 6px; }
+  .detail-list li::before { content: "·"; color: #334155; flex-shrink: 0; }
+
+  .trigger-box { margin-top: 8px; background: rgba(251,191,36,0.08); border: 1px dashed #f59e0b; border-radius: 6px; padding: 6px 10px; font-size: 10px; color: #fbbf24; }
+  .trigger-box strong { color: #fcd34d; }
+
+  /* VPS comparison */
+  .vps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .vps-card { background: #0d1b2a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; font-size: 10px; }
+  .vps-name { font-weight: 700; color: #93c5fd; margin-bottom: 4px; }
+  .vps-price { font-size: 16px; font-weight: 800; color: #3b82f6; }
+  .vps-spec { color: #475569; font-size: 9px; line-height: 1.6; margin-top: 4px; }
+  .vps-rec { background: #1d4ed8; color: white; font-size: 8px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; }
+
+  .note { font-size: 10px; color: #64748b; background: #0d1b2a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px 14px; line-height: 1.7; }
+  .note strong { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<h2>ถ้ายังไม่มีลูกค้า — Migration Path</h2>
+<p class="subtitle">ไม่ต้องจ่าย AWS ฿2,500/เดือน ตั้งแต่วันแรก · ค่อย migrate ตามรายได้จริง</p>
+
+<!-- VPS Options for Phase 0 -->
+<div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Phase 0 — เลือก VPS แทน AWS</div>
+<div class="vps-grid">
+  <div class="vps-card">
+    <div class="vps-name">Contabo VPS S <span class="vps-rec">แนะนำ</span></div>
+    <div class="vps-price">$7<span style="font-size:10px;color:#64748b">/mo</span></div>
+    <div style="font-size:9px;color:#10b981;margin-top:2px">~฿255/เดือน</div>
+    <div class="vps-spec">
+      4 vCPU · 6 GB RAM · 100 GB SSD<br/>
+      Docker Compose ทั้งหมดรันได้<br/>
+      ตั้งอยู่ Singapore / Frankfurt
+    </div>
+  </div>
+  <div class="vps-card">
+    <div class="vps-name">DigitalOcean Droplet</div>
+    <div class="vps-price">$24<span style="font-size:10px;color:#64748b">/mo</span></div>
+    <div style="font-size:9px;color:#f59e0b;margin-top:2px">~฿870/เดือน</div>
+    <div class="vps-spec">
+      2 vCPU · 4 GB RAM · 80 GB SSD<br/>
+      Managed DB add-on ได้ทีหลัง<br/>
+      Singapore region
+    </div>
+  </div>
+  <div class="vps-card">
+    <div class="vps-name">AWS EC2 t3.small</div>
+    <div class="vps-price">$15<span style="font-size:10px;color:#64748b">/mo</span></div>
+    <div style="font-size:9px;color:#f59e0b;margin-top:2px">~฿545/เดือน + storage</div>
+    <div class="vps-spec">
+      2 vCPU · 2 GB RAM<br/>
+      อยู่ใน AWS แล้ว migrate ง่าย<br/>
+      ต้องตั้ง EIP, Security Group เอง
+    </div>
+  </div>
+</div>
+
+<!-- Roadmap -->
+<div style="font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Migration Roadmap</div>
+<div class="roadmap">
+
+  <!-- Phase 0 -->
+  <div class="phase-row">
+    <div class="phase-connector">
+      <div class="phase-dot dot-0">0</div>
+      <div class="phase-line line-0"></div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-header">
+        <div class="phase-title" style="color:#64748b">ยังไม่มีลูกค้า</div>
+        <span class="phase-when when-0">ตอนนี้ → ลูกค้าคนแรก</span>
+      </div>
+      <div class="phase-card card-0">
+        <div class="infra-row">
+          <span class="infra-box" style="background:#1a2030;color:#93c5fd">Contabo VPS $7</span>
+          <span class="infra-box" style="background:#0f2a1e;color:#6ee7b7">Docker Compose</span>
+          <span class="infra-box" style="background:#1e293b;color:#94a3b8">Nginx (มีอยู่แล้ว)</span>
+        </div>
+        <ul class="detail-list">
+          <li>App + PostgreSQL + Redis ทั้งหมดบน server เดียว</li>
+          <li>ใช้ docker-compose.yml ที่มีอยู่แล้ว เพิ่ม Redis service</li>
+          <li>Nginx reverse proxy + Let's Encrypt (มีอยู่แล้ว)</li>
+          <li>ไม่มี auto-scale แต่ไม่จำเป็น ยังไม่มี load</li>
+        </ul>
+        <div class="cost-row">
+          <div>
+            <div class="cost-label">ค่าใช้จ่าย/เดือน</div>
+            <div class="cost-value" style="color:#10b981">~฿255</div>
+          </div>
+          <div style="text-align:right">
+            <div class="cost-revenue">รายได้ที่ต้องการ</div>
+            <div style="font-size:11px;color:#64748b">฿0 (ยังทดสอบตลาด)</div>
+          </div>
+        </div>
+      </div>
+      <div class="trigger-box">
+        <strong>เมื่อไหร่ขยับ →</strong> มีลูกค้าจ่ายเงินจริง 3+ ร้าน (รายได้ ~฿1,770+/mo)
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase-row">
+    <div class="phase-connector">
+      <div class="phase-dot dot-1">1</div>
+      <div class="phase-line line-1"></div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-header">
+        <div class="phase-title" style="color:#93c5fd">มีลูกค้า 3–10 ร้าน</div>
+        <span class="phase-when when-1">รายได้ ฿1,800–15,000/mo</span>
+      </div>
+      <div class="phase-card card-1">
+        <div class="infra-row">
+          <span class="infra-box" style="background:#1a2744;color:#93c5fd">AWS EC2 t3.small</span>
+          <span class="infra-box" style="background:#0f2a1e;color:#6ee7b7">RDS t4g.micro</span>
+          <span class="infra-box" style="background:#2a1010;color:#fca5a5">ElastiCache micro</span>
+          <span class="infra-box" style="background:#2a1c0a;color:#fcd34d">S3</span>
+        </div>
+        <ul class="detail-list">
+          <li>ย้าย Docker app ไป EC2 · database ไป RDS · รูปไป S3</li>
+          <li>ยังไม่ใช้ ECS Fargate — EC2 ถูกกว่าตอน traffic น้อย</li>
+          <li>ALB ยังไม่จำเป็น ถ้ามีแค่ 1 instance</li>
+          <li>Redis บน ElastiCache — SSE ทำงานถูกต้อง</li>
+        </ul>
+        <div class="cost-row">
+          <div>
+            <div class="cost-label">ค่าใช้จ่าย/เดือน</div>
+            <div class="cost-value" style="color:#3b82f6">~฿1,800</div>
+          </div>
+          <div style="text-align:right">
+            <div class="cost-revenue">break-even ที่</div>
+            <div style="font-size:11px;color:#6ee7b7">Pro 2 ร้าน (฿2,980)</div>
+          </div>
+        </div>
+      </div>
+      <div class="trigger-box">
+        <strong>เมื่อไหร่ขยับ →</strong> CPU > 70% สม่ำเสมอ หรือ มีลูกค้า 10+ ร้าน
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase-row">
+    <div class="phase-connector">
+      <div class="phase-dot dot-2">2</div>
+      <div class="phase-line line-2"></div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-header">
+        <div class="phase-title" style="color:#c4b5fd">มีลูกค้า 10–30 ร้าน</div>
+        <span class="phase-when when-2">รายได้ ฿15,000–45,000/mo</span>
+      </div>
+      <div class="phase-card card-2">
+        <div class="infra-row">
+          <span class="infra-box" style="background:#1c1f3a;color:#c7d2fe">ALB</span>
+          <span class="infra-box" style="background:#1e1a3a;color:#c4b5fd">ECS Fargate 2 tasks</span>
+          <span class="infra-box" style="background:#0f2a1e;color:#6ee7b7">RDS t4g.small Multi-AZ</span>
+          <span class="infra-box" style="background:#1a1a2e;color:#a5b4fc">CloudFront</span>
+        </div>
+        <ul class="detail-list">
+          <li>เพิ่ม ALB + ECS Fargate (AWS Starter tier เต็มรูปแบบ)</li>
+          <li>Multi-AZ สำหรับ RDS — downtime ลดลงมาก</li>
+          <li>CloudFront สำหรับ static assets</li>
+          <li>GitHub Actions CI/CD ครบ</li>
+        </ul>
+        <div class="cost-row">
+          <div>
+            <div class="cost-label">ค่าใช้จ่าย/เดือน</div>
+            <div class="cost-value" style="color:#a78bfa">~฿6,800</div>
+          </div>
+          <div style="text-align:right">
+            <div class="cost-revenue">break-even ที่</div>
+            <div style="font-size:11px;color:#6ee7b7">Pro 5 ร้าน (฿7,450)</div>
+          </div>
+        </div>
+      </div>
+      <div class="trigger-box">
+        <strong>เมื่อไหร่ขยับ →</strong> มีลูกค้า 30+ ร้าน หรือต้องการ SLA 99.9%
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase-row">
+    <div class="phase-connector">
+      <div class="phase-dot dot-3">3</div>
+    </div>
+    <div class="phase-body">
+      <div class="phase-header">
+        <div class="phase-title" style="color:#6ee7b7">30+ ร้าน · Scale</div>
+        <span class="phase-when when-3">รายได้ 45,000฿+/mo</span>
+      </div>
+      <div class="phase-card card-3">
+        <div class="infra-row">
+          <span class="infra-box" style="background:#1e1a3a;color:#c4b5fd">ECS 4 tasks</span>
+          <span class="infra-box" style="background:#0f2a1e;color:#6ee7b7">RDS t4g.medium</span>
+          <span class="infra-box" style="background:#2a1010;color:#fca5a5">ElastiCache small</span>
+          <span class="infra-box" style="background:#0d1b2a;color:#93c5fd">Route 53 + CF</span>
+        </div>
+        <ul class="detail-list">
+          <li>AWS Growth / Scale tier เต็มรูปแบบ</li>
+          <li>Auto Scaling policy ตาม CPU</li>
+          <li>Backup daily + point-in-time recovery</li>
+        </ul>
+        <div class="cost-row">
+          <div>
+            <div class="cost-label">ค่าใช้จ่าย/เดือน</div>
+            <div class="cost-value" style="color:#10b981">~฿6,800–13,500</div>
+          </div>
+          <div style="text-align:right">
+            <div class="cost-revenue">รายได้คาด</div>
+            <div style="font-size:11px;color:#6ee7b7">฿45,000–110,000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <strong>สรุปกลยุทธ์:</strong> เริ่ม Contabo $7/เดือน (~฿255) ด้วย Docker Compose ที่มีอยู่แล้ว บวก Redis container เพิ่ม · ค่าใช้จ่ายรวม infrastructure ช่วงหาลูกค้าแรกแค่ <strong style="color:#10b981">~฿300/เดือน</strong> · migrate ไป AWS เมื่อรายได้ justify ค่าใช้จ่าย · Redis ที่ออกแบบไว้ใน Option C ทำงานได้ทั้งบน Contabo (Docker) และ ElastiCache (AWS) โดยแก้แค่ <code style="font-size:9px;background:#1e293b;padding:1px 4px;border-radius:3px">REDIS_URL</code> env var
+</div>
+
+</body>
+</html>

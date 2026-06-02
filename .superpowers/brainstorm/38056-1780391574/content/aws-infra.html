@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Infrastructure — ddcar</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; min-height: 100vh; }
+
+  h2 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+  .subtitle { font-size: 0.8rem; color: #64748b; margin-bottom: 24px; }
+
+  .diagram { display: flex; flex-direction: column; gap: 12px; max-width: 900px; margin: 0 auto; }
+
+  /* Layers */
+  .layer { border-radius: 12px; padding: 14px 16px; position: relative; }
+  .layer-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .layer-dns    { background: rgba(15,23,42,0.6); border: 1px solid #334155; }
+  .layer-edge   { background: rgba(37,99,235,0.08); border: 1px dashed #3b82f6; }
+  .layer-compute { background: rgba(124,58,237,0.08); border: 1px dashed #7c3aed; }
+  .layer-data   { background: rgba(5,150,105,0.08); border: 1px dashed #10b981; }
+  .layer-storage { background: rgba(217,119,6,0.08); border: 1px dashed #f59e0b; }
+  .layer-cicd   { background: rgba(15,23,42,0.4); border: 1px solid #1e293b; }
+
+  /* Boxes */
+  .boxes { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+  .box {
+    border-radius: 8px; padding: 10px 14px; font-size: 11px; font-weight: 600;
+    display: flex; flex-direction: column; gap: 4px; min-width: 130px; flex: 1;
+    position: relative;
+  }
+  .box-title { font-size: 11px; font-weight: 700; }
+  .box-sub { font-size: 9px; font-weight: 400; opacity: 0.75; line-height: 1.4; }
+  .box-badge { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px; width: fit-content; }
+
+  /* Colors per service group */
+  .c-route53  { background: #1a2744; border: 1px solid #2563eb; color: #93c5fd; }
+  .c-cf       { background: #1a1a2e; border: 1px solid #6366f1; color: #a5b4fc; }
+  .c-alb      { background: #1c1f3a; border: 1px solid #818cf8; color: #c7d2fe; }
+  .c-ecs      { background: #1e1a3a; border: 1px solid #7c3aed; color: #c4b5fd; }
+  .c-ecr      { background: #1a1f3a; border: 1px solid #6d28d9; color: #a78bfa; }
+  .c-rds      { background: #0f2a1e; border: 1px solid #10b981; color: #6ee7b7; }
+  .c-redis    { background: #2a1010; border: 1px solid #ef4444; color: #fca5a5; }
+  .c-s3       { background: #2a1c0a; border: 1px solid #f59e0b; color: #fcd34d; }
+  .c-github   { background: #1a1a1a; border: 1px solid #4b5563; color: #9ca3af; }
+  .c-codecommit { background: #1a2030; border: 1px solid #3b82f6; color: #93c5fd; }
+
+  /* Arrows between layers */
+  .arrow-row { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 2px 0; }
+  .arrow-down-icon { color: #334155; font-size: 18px; }
+  .arrow-label { font-size: 9px; color: #475569; background: #1e293b; padding: 2px 8px; border-radius: 4px; }
+
+  /* Flow lines inside compute */
+  .flow-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .flow-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Note boxes */
+  .note { font-size: 10px; color: #64748b; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 12px; margin-top: 10px; line-height: 1.6; }
+  .note strong { color: #94a3b8; }
+
+  /* Tags */
+  .tag-new { background: #064e3b; color: #6ee7b7; }
+  .tag-existing { background: #1e1b4b; color: #a5b4fc; }
+  .tag-change { background: #451a03; color: #fbbf24; }
+
+  .icon { width:12px;height:12px;display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+</style>
+</head>
+<body>
+
+<h2>AWS Infrastructure — ddcar (Production)</h2>
+<p class="subtitle">สำหรับ apps/shop · รองรับ multi-instance + SSE ด้วย Redis Pub/Sub</p>
+
+<div class="diagram">
+
+  <!-- DNS / CDN Layer -->
+  <div class="layer layer-dns">
+    <div class="layer-label" style="color:#64748b">DNS + CDN</div>
+    <div class="boxes">
+      <div class="box c-route53" style="flex:1">
+        <div class="box-title">Route 53</div>
+        <div class="box-sub">ddcar.th → ALB<br/>DNS failover</div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+      <div class="box c-cf" style="flex:2">
+        <div class="box-title">CloudFront</div>
+        <div class="box-sub">Static assets (_next/static, /public)<br/>Cache-Control headers · ไม่ผ่าน ECS<br/><strong style="color:#818cf8">ข้าม CloudFront สำหรับ /api/events (SSE)</strong></div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+      <div class="box c-alb" style="flex:2">
+        <div class="box-title">ALB (Application Load Balancer)</div>
+        <div class="box-sub">HTTP/2 · Health check /api/health<br/>Target Group → ECS tasks<br/><strong style="color:#c7d2fe">/api/events → idle timeout 5 min</strong></div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span style="color:#334155;font-size:20px">↓</span>
+    <span class="arrow-label">HTTPS :443</span>
+  </div>
+
+  <!-- Compute Layer -->
+  <div class="layer layer-compute">
+    <div class="layer-label" style="color:#a78bfa">Compute — ECS Fargate</div>
+    <div class="boxes">
+      <div class="box c-ecs" style="flex:3">
+        <div class="box-title">ECS Service — @ddcar/shop</div>
+        <div class="box-sub">
+          Task: 1 vCPU · 2 GB RAM (ปรับได้)<br/>
+          Min 1 · Max 4 tasks (Auto Scaling)<br/>
+          Image: ECR → apps/shop/Dockerfile<br/>
+          Port 3000 · ENV จาก Secrets Manager
+        </div>
+        <div class="flow-line">
+          <span class="flow-dot" style="background:#10b981"></span>
+          <span style="font-size:9px;color:#6ee7b7">→ RDS (DATABASE_URL)</span>
+        </div>
+        <div class="flow-line">
+          <span class="flow-dot" style="background:#ef4444"></span>
+          <span style="font-size:9px;color:#fca5a5">→ ElastiCache Redis (REDIS_URL) — pub/sub SSE</span>
+        </div>
+        <div class="flow-line">
+          <span class="flow-dot" style="background:#f59e0b"></span>
+          <span style="font-size:9px;color:#fcd34d">→ S3 (รูปภาพ uploads แทน /uploads local)</span>
+        </div>
+        <span class="box-badge tag-change">ปรับ Dockerfile</span>
+      </div>
+      <div class="box c-ecr" style="flex:1">
+        <div class="box-title">ECR</div>
+        <div class="box-sub">
+          Docker image registry<br/>
+          ddcar/shop:latest<br/>
+          ddcar/shop:&lt;sha&gt;
+        </div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span style="color:#334155;font-size:20px">↓</span>
+    <span class="arrow-label">Private subnets (VPC)</span>
+  </div>
+
+  <!-- Data Layer -->
+  <div class="layer layer-data">
+    <div class="layer-label" style="color:#6ee7b7">Data — Managed Services</div>
+    <div class="boxes">
+      <div class="box c-rds" style="flex:2">
+        <div class="box-title">RDS PostgreSQL</div>
+        <div class="box-sub">
+          db.t4g.small (prod) / db.t4g.micro (dev)<br/>
+          Multi-AZ · Auto backup 7 วัน<br/>
+          Prisma migrate deploy on deploy<br/>
+          แทน PostgreSQL container ปัจจุบัน
+        </div>
+        <span class="box-badge tag-change">ย้ายจาก Docker</span>
+      </div>
+      <div class="box c-redis" style="flex:2">
+        <div class="box-title">ElastiCache Redis</div>
+        <div class="box-sub">
+          cache.t4g.micro · Redis 7<br/>
+          SSE Pub/Sub: channel <code style="font-size:9px">shop:{shopId}</code><br/>
+          ทุก ECS task subscribe channel เดียวกัน<br/>
+          → ทุก Browser ได้รับ event ครบ
+        </div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+      <div class="box c-s3" style="flex:1">
+        <div class="box-title">S3</div>
+        <div class="box-sub">
+          รูปภาพ job uploads<br/>
+          Pre-signed URL<br/>
+          แทน /uploads local volume
+        </div>
+        <span class="box-badge tag-change">ย้ายจาก volume</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CI/CD -->
+  <div class="layer layer-cicd">
+    <div class="layer-label" style="color:#475569">CI/CD</div>
+    <div class="boxes">
+      <div class="box c-github" style="flex:2">
+        <div class="box-title">GitHub Actions</div>
+        <div class="box-sub">
+          push main → build Docker image → push ECR<br/>
+          → ECS deploy (rolling update, zero downtime)<br/>
+          → prisma migrate deploy
+        </div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+      <div class="box c-rds" style="flex:3">
+        <div class="box-title" style="color:#6ee7b7">Secrets Manager</div>
+        <div class="box-sub">
+          DATABASE_URL, REDIS_URL, AUTH_SECRET<br/>
+          S3_BUCKET, AWS_REGION<br/>
+          ECS task definition ดึง env ตรงนี้ ไม่ hardcode ใน image
+        </div>
+        <span class="box-badge tag-new">ใหม่</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>SSE กับ ALB:</strong> ALB ต้องตั้ง idle timeout ≥ 300s สำหรับ /api/events (ค่า default 60s จะตัด connection) · CloudFront ต้อง <strong>bypass</strong> /api/events ไม่งั้น buffer response แทนที่จะ stream<br/><br/>
+    <strong>S3 uploads:</strong> ปัจจุบัน app เขียนไฟล์ไปที่ /uploads local — ต้อง migrate เป็น S3 pre-signed URL เพราะ ECS Fargate ไม่มี persistent local storage ข้าม task<br/><br/>
+    <strong>ค่าใช้จ่ายประมาณ (ap-southeast-1):</strong> ECS Fargate 1 task ~$15/เดือน · RDS t4g.small ~$25 · ElastiCache t4g.micro ~$12 · ALB ~$18 · รวมประมาณ <strong>~$70–90/เดือน</strong>
+  </div>
+
+</div>
+
+</body>
+</html>
