@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import { Sarabun } from 'next/font/google'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
-import { ConfigProvider } from 'antd'
-import thTH from 'antd/locale/th_TH'
 import Link from 'next/link'
 import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/auth'
 import { UserNav } from './UserNav'
 import { prisma } from '@/lib/prisma'
+import { ThemeProvider } from '@/components/ThemeProvider'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { NotificationBell } from '@/components/NotificationBell'
 import './globals.css'
 
 const sarabun = Sarabun({
@@ -43,11 +44,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="th">
+    <html lang="th" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('ddcar-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark')})()`,
+          }}
+        />
+      </head>
       <body className={sarabun.className}>
         <SessionProvider>
           <AntdRegistry>
-            <ConfigProvider locale={thTH} theme={{ token: { fontFamily: 'Sarabun, sans-serif' } }}>
+            <ThemeProvider>
               {user && (
                 <nav
                   style={{
@@ -59,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   }}
                 >
                   <span style={{ color: 'white', fontWeight: 700, fontSize: '1rem' }}>
-                    🔧 ดีดีช่างยนต์
+                    ดีดีช่างยนต์
                   </span>
                   <Link href="/" style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>
                     รับรถเข้าซ่อม
@@ -112,7 +120,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       จัดการพันธมิตร
                     </Link>
                   )}
-                  <div style={{ marginLeft: 'auto' }}>
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ThemeToggle />
+                    <NotificationBell />
                     <UserNav name={user.name!} role={user.role} shopName={user.shopName} />
                   </div>
                 </nav>
@@ -122,7 +132,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Link href="/privacy" style={{ color: '#94a3b8', marginRight: 16 }}>Privacy Policy</Link>
                 <Link href="/terms" style={{ color: '#94a3b8' }}>Terms of Service</Link>
               </footer>
-            </ConfigProvider>
+            </ThemeProvider>
           </AntdRegistry>
         </SessionProvider>
       </body>
