@@ -32,6 +32,8 @@ export const metadata: Metadata = {
   other: { 'mobile-web-app-capable': 'yes' },
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   const user = session?.user
