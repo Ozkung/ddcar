@@ -8,6 +8,7 @@ import {
 import { SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { RangePickerProps } from 'antd/es/date-picker'
+import { useSSE } from '@/hooks/useSSE'
 
 const { Title } = Typography
 const { RangePicker } = DatePicker
@@ -48,17 +49,6 @@ export default function ReportPage() {
 
   const isFilterChange = useRef(false)
 
-  const buildParams = useCallback(() => {
-    const p = new URLSearchParams()
-    p.set('page', String(page))
-    p.set('pageSize', String(pageSize))
-    if (search)   p.set('search', search)
-    if (status)   p.set('status', status)
-    if (dateFrom) p.set('dateFrom', dateFrom)
-    if (dateTo)   p.set('dateTo', dateTo)
-    return p
-  }, [page, pageSize, search, status, dateFrom, dateTo])
-
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -73,6 +63,23 @@ export default function ReportPage() {
       setLoading(false)
     }
   }, [buildParams])
+
+  useSSE((event) => {
+    if (event.type === 'job_created' || event.type === 'job_status_changed') {
+      fetchData()
+    }
+  })
+
+  const buildParams = useCallback(() => {
+    const p = new URLSearchParams()
+    p.set('page', String(page))
+    p.set('pageSize', String(pageSize))
+    if (search)   p.set('search', search)
+    if (status)   p.set('status', status)
+    if (dateFrom) p.set('dateFrom', dateFrom)
+    if (dateTo)   p.set('dateTo', dateTo)
+    return p
+  }, [page, pageSize, search, status, dateFrom, dateTo])
 
   // When filters change: reset to page 1 and fetch
   useEffect(() => {
