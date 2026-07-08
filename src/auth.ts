@@ -41,7 +41,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email,
             role: user.role,
             shopId: user.shopId,
-            shopName: user.shop.name,
+            shopName: user.shop?.name ?? '',
           }
         } else {
           // Staff path: find by refCode + email, must be LEAD_TECH or TECH
