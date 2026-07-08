@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Layout, Menu, Badge, Tooltip } from 'antd'
+import { Layout, Menu, Badge, Tooltip, ConfigProvider } from 'antd'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -77,7 +77,7 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
   // Match active key: exact for '/', prefix for others
   const selectedKey = navItems.find(item =>
     item.key === '/' ? pathname === '/' : pathname.startsWith(item.key)
-  )?.key ?? pathname
+  )?.key ?? ''
 
   const siderWidth = 220
   const collapsedWidth = 64
@@ -122,13 +122,15 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
         </div>
 
         {/* Nav menu */}
-        <Menu
-          mode="inline"
-          theme="dark"
-          selectedKeys={[selectedKey]}
-          style={{ background: 'transparent', border: 'none', flex: 1, marginTop: 8 }}
-          items={navItems}
-        />
+        <ConfigProvider theme={{ components: { Menu: { darkItemSelectedBg: 'rgba(37,99,235,0.2)', darkItemSelectedColor: '#2563eb' } } }}>
+          <Menu
+            mode="inline"
+            theme="dark"
+            selectedKeys={[selectedKey]}
+            style={{ background: 'transparent', border: 'none', flex: 1, marginTop: 8 }}
+            items={navItems}
+          />
+        </ConfigProvider>
 
         {/* Footer links */}
         <div style={{
@@ -189,11 +191,6 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
           {children}
         </Layout.Content>
 
-        {/* Footer */}
-        <footer style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: '#94a3b8' }}>
-          <Link href="/privacy" style={{ color: '#94a3b8', marginRight: 16 }}>Privacy Policy</Link>
-          <Link href="/terms" style={{ color: '#94a3b8' }}>Terms of Service</Link>
-        </footer>
       </Layout>
     </Layout>
   )
