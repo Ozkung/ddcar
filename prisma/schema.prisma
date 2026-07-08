@@ -58,6 +58,8 @@ model User {
   role         Role
   isActive     Boolean  @default(true)
   shopId       String
+  phone        String?
+  birthDate    DateTime?
   shop         Shop     @relation(fields: [shopId], references: [id])
   createdJobs  Job[]    @relation("CreatedBy")
   assignedJobs Job[]    @relation("AssignedJobs")
