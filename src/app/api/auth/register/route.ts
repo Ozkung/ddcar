@@ -1,21 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-
-const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-export function generateRefCode(): string {
-  return Array.from({ length: 5 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('')
-}
-
-async function uniqueRefCode(): Promise<string> {
-  for (let i = 0; i < 10; i++) {
-    const code = generateRefCode()
-    const exists = await prisma.shop.findUnique({ where: { refCode: code } })
-    if (!exists) return code
-  }
-  throw new Error('Could not generate unique refCode')
-}
+import { generateRefCode } from '@/lib/refCode'
 
 export async function POST(req: Request) {
   try {
@@ -40,7 +26,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email นี้ถูกใช้งานแล้ว' }, { status: 409 })
     }
 
-    const refCode = await uniqueRefCode()
+    const refCode = await generateRefCode()
     const hashedPassword = await bcrypt.hash(password as string, 10)
 
     const parsedDate = new Date(birthDate as string)
