@@ -45,11 +45,7 @@ export function UserNav({ name, role, shopName }: Props) {
         ],
       }}
     >
-      <Button
-        type="text"
-        icon={<UserOutlined />}
-        style={{ color: 'rgba(255,255,255,0.85)' }}
-      >
+      <Button type="text" icon={<UserOutlined />}>
         {name}
       </Button>
     </Dropdown>
