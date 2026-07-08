@@ -25,6 +25,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' }, { status: 400 })
     }
 
+    if ((password as string).length < 8) {
+      return NextResponse.json({ error: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร' }, { status: 400 })
+    }
+
+    if (!(email as string).includes('@')) {
+      return NextResponse.json({ error: 'รูปแบบ Email ไม่ถูกต้อง' }, { status: 400 })
+    }
+
     const normalizedEmail = (email as string).trim().toLowerCase()
 
     const existing = await prisma.user.findFirst({ where: { email: normalizedEmail, role: { in: ['SUPER_ADMIN', 'SHOP_ADMIN'] } } })
@@ -34,6 +42,11 @@ export async function POST(req: Request) {
 
     const refCode = await uniqueRefCode()
     const hashedPassword = await bcrypt.hash(password as string, 10)
+
+    const parsedDate = new Date(birthDate as string)
+    if (isNaN(parsedDate.getTime())) {
+      return NextResponse.json({ error: 'รูปแบบวันเกิดไม่ถูกต้อง' }, { status: 400 })
+    }
 
     await prisma.$transaction(async (tx) => {
       const shop = await tx.shop.create({
@@ -47,7 +60,7 @@ export async function POST(req: Request) {
           role: 'SHOP_ADMIN',
           shopId: shop.id,
           phone: phone as string,
-          birthDate: new Date(birthDate as string),
+          birthDate: parsedDate,
         },
       })
     })

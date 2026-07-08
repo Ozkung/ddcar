@@ -1,57 +1,58 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Form, Input, Button, Card, Typography, Alert } from 'antd'
-import { ShopOutlined, LockOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Card, Typography, Alert, Divider, Tag } from 'antd'
+import Link from 'next/link'
+import { Wrench } from 'lucide-react'
 
-const { Title } = Typography
+const { Title, Text } = Typography
+const LS_KEY = 'ddcar:recent_refcodes'
 
 export default function LoginForm() {
   const router = useRouter()
-  const [step, setStep] = useState<0 | 1>(0)
-  const [refCode, setRefCode] = useState('')
-  const [shopName, setShopName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form1] = Form.useForm()
-  const [form2] = Form.useForm()
+  const [form] = Form.useForm()
+  const [savedCodes, setSavedCodes] = useState<string[]>([])
 
-  async function onVerifyShop({ code }: { code: string }) {
-    setLoading(true)
-    setError(null)
+  useEffect(() => {
     try {
-      const res = await fetch('/api/auth/verify-shop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refCode: code }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error); return }
-      setRefCode(code.toUpperCase())
-      setShopName(data.shopName)
-      setStep(1)
-    } catch {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
-    } finally {
-      setLoading(false)
-    }
+      const raw = localStorage.getItem(LS_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setSavedCodes(Array.isArray(parsed) ? parsed : [])
+      }
+    } catch {}
+  }, [])
+
+  function saveRefCode(code: string) {
+    const updated = [code, ...savedCodes.filter(c => c !== code)].slice(0, 5)
+    setSavedCodes(updated)
+    localStorage.setItem(LS_KEY, JSON.stringify(updated))
   }
 
-  async function onLogin({ email, password }: { email: string; password: string }) {
+  function removeRefCode(code: string) {
+    const updated = savedCodes.filter(c => c !== code)
+    setSavedCodes(updated)
+    localStorage.setItem(LS_KEY, JSON.stringify(updated))
+  }
+
+  async function onLogin({ email, password, refCode }: { email: string; password: string; refCode?: string }) {
     setLoading(true)
     setError(null)
     const result = await signIn('credentials', {
-      refCode,
       email,
       password,
+      refCode: refCode ?? '',
       redirect: false,
     })
     setLoading(false)
     if (result?.error) {
-      setError('Email หรือ Password ไม่ถูกต้อง')
+      setError('Email, Password หรือรหัสร้านไม่ถูกต้อง')
     } else {
+      if (refCode) saveRefCode(refCode)
       router.push('/')
       router.refresh()
     }
@@ -60,100 +61,80 @@ export default function LoginForm() {
   return (
     <Card style={{ width: 420, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ fontSize: 32, marginBottom: 4 }}>🔧</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+          <Wrench size={32} color="#2563eb" />
+        </div>
         <Title level={3} style={{ margin: 0 }}>DDReport</Title>
       </div>
 
-      {error && (
-        <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />
-      )}
+      {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
 
-      {step === 0 && (
-        <>
-          <div style={{ textAlign: 'center', marginBottom: 20, color: '#64748b' }}>
-            <ShopOutlined style={{ marginRight: 6 }} />
-            กรอกรหัสร้านของคุณ
-          </div>
-          <Form form={form1} layout="vertical" onFinish={onVerifyShop}>
-            <Form.Item
-              name="code"
-              rules={[
-                { required: true, message: 'กรุณากรอกรหัสร้าน' },
-                { len: 5, message: 'รหัสร้านต้องมี 5 หลัก' },
-              ]}
-            >
-              <Input
-                placeholder="เช่น A3K9M"
-                maxLength={5}
-                size="large"
-                style={{
-                  textTransform: 'uppercase',
-                  letterSpacing: 8,
-                  fontSize: 22,
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                }}
-                onChange={(e) =>
-                  form1.setFieldValue('code', e.target.value.toUpperCase())
-                }
-              />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block size="large">
-              ค้นหาร้าน
-            </Button>
-          </Form>
-        </>
-      )}
+      <Form form={form} layout="vertical" onFinish={onLogin}>
+        <Form.Item
+          label="Email"
+          name="email"
+          rules={[{ required: true, type: 'email', message: 'กรุณากรอก Email' }]}
+        >
+          <Input size="large" autoFocus />
+        </Form.Item>
 
-      {step === 1 && (
-        <>
-          <Alert
-            message={
-              <>
-                ร้าน:{' '}
-                <strong>{shopName}</strong>
-                <Button
-                  size="small"
-                  type="link"
-                  style={{ float: 'right', padding: 0 }}
-                  onClick={() => {
-                    setStep(0)
-                    setError(null)
-                    form2.resetFields()
-                  }}
-                >
-                  เปลี่ยนร้าน
-                </Button>
-              </>
-            }
-            type="success"
-            style={{ marginBottom: 20 }}
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: 'กรุณากรอก Password' }]}
+        >
+          <Input.Password size="large" />
+        </Form.Item>
+
+        <Form.Item
+          label={
+            <span>
+              รหัสร้าน{' '}
+              <Text type="secondary" style={{ fontSize: 12 }}>(สำหรับช่างหรือพนักงาน)</Text>
+            </span>
+          }
+          name="refCode"
+        >
+          <Input
+            placeholder="เช่น A3K9M"
+            maxLength={5}
+            size="large"
+            style={{ textTransform: 'uppercase', letterSpacing: 4, fontFamily: 'monospace' }}
+            onChange={e => form.setFieldValue('refCode', e.target.value.toUpperCase())}
           />
-          <div style={{ textAlign: 'center', marginBottom: 20, color: '#64748b' }}>
-            <LockOutlined style={{ marginRight: 6 }} />
-            กรอก Email และ Password
+        </Form.Item>
+
+        {savedCodes.length > 0 && (
+          <div style={{ marginTop: -8, marginBottom: 16 }}>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+              ร้านที่เคย Login
+            </Text>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {savedCodes.map(code => (
+                <Tag
+                  key={code}
+                  closable
+                  style={{ cursor: 'pointer', fontFamily: 'monospace', letterSpacing: 2 }}
+                  onClick={() => form.setFieldValue('refCode', code)}
+                  onClose={e => { e.stopPropagation(); removeRefCode(code) }}
+                >
+                  {code}
+                </Tag>
+              ))}
+            </div>
           </div>
-          <Form form={form2} layout="vertical" onFinish={onLogin}>
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[{ required: true, type: 'email', message: 'กรุณากรอก Email' }]}
-            >
-              <Input size="large" autoFocus />
-            </Form.Item>
-            <Form.Item
-              label="Password"
-              name="password"
-              rules={[{ required: true, message: 'กรุณากรอก Password' }]}
-            >
-              <Input.Password size="large" />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block size="large">
-              เข้าสู่ระบบ
-            </Button>
-          </Form>
-        </>
-      )}
+        )}
+
+        <Button type="primary" htmlType="submit" loading={loading} block size="large">
+          เข้าสู่ระบบ
+        </Button>
+      </Form>
+
+      <Divider style={{ margin: '20px 0' }} />
+      <div style={{ textAlign: 'center' }}>
+        <Text type="secondary">ยังไม่มีบัญชี? </Text>
+        <Link href="/register">สมัครสมาชิก</Link>
+      </div>
     </Card>
   )
 }

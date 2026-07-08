@@ -31,6 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               isActive: true,
             },
             include: { shop: true },
+            orderBy: { createdAt: 'asc' },
           })
           if (!user) return null
           const valid = await bcrypt.compare(password, user.password)

@@ -133,7 +133,7 @@ export default function RegisterForm() {
         <Form.Item
           name="acceptPrivacy"
           valuePropName="checked"
-          rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject('กรุณายอมรับ Privacy Policy') }]}
+          rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject(new Error('กรุณายอมรับ Privacy Policy')) }]}
         >
           <Checkbox>
             ยอมรับ <Link href="/privacy" target="_blank">Privacy Policy</Link>
@@ -143,7 +143,7 @@ export default function RegisterForm() {
         <Form.Item
           name="acceptTerms"
           valuePropName="checked"
-          rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject('กรุณายอมรับ Terms of Service') }]}
+          rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject(new Error('กรุณายอมรับ Terms of Service')) }]}
           style={{ marginBottom: 20 }}
         >
           <Checkbox>
