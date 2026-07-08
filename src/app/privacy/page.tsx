@@ -1,7 +1,4 @@
-import { Typography } from 'antd'
 import PrivacyTabs from './LegalTabs'
-
-const { Title } = Typography
 
 export default function PrivacyPage() {
   const appName     = process.env.NEXT_PUBLIC_APP_NAME     ?? 'ดีดีช่างยนต์'
@@ -11,7 +8,7 @@ export default function PrivacyPage() {
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '2rem 1.5rem' }}>
-      <Title level={2}>นโยบายความเป็นส่วนตัว / Privacy Policy</Title>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>นโยบายความเป็นส่วนตัว / Privacy Policy</h2>
       <PrivacyTabs
         appName={appName}
         companyName={companyName}

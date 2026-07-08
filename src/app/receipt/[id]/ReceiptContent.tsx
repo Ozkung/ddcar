@@ -7,6 +7,7 @@ import PrintButton from './PrintButton'
 import ImageGallery from './ImageGallery'
 import Link from 'next/link'
 import { EditOutlined } from '@ant-design/icons'
+import { Wrench, Clock, ArrowLeftRight, ArrowDownToLine } from 'lucide-react'
 
 const { Title, Text } = Typography
 
@@ -120,7 +121,7 @@ export default function ReceiptContent({ job, currentShopId }: Props) {
           style={{ marginBottom: 16 }}
           message={
             <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span>⏳ รอ <strong>{transfer.toShop.name}</strong> กดรับงาน</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Clock size={15} /> รอ <strong>{transfer.toShop.name}</strong> กดรับงาน</span>
               <Button size="small" danger onClick={cancelTransfer}>ยกเลิกการโอน</Button>
             </Space>
           }
@@ -133,8 +134,8 @@ export default function ReceiptContent({ job, currentShopId }: Props) {
           type="info"
           style={{ marginBottom: 16 }}
           message={
-            <span>
-              🔄 ถ่ายงานออกไปยัง <strong>{transfer.toShop.name}</strong>{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <ArrowLeftRight size={15} /> ถ่ายงานออกไปยัง <strong>{transfer.toShop.name}</strong>{' '}
               ({transfer.toShop.refCode}) — สถานะปัจจุบัน:{' '}
               <Tag color={STATUS_COLORS[job.status] ?? 'default'}>{job.status}</Tag>
             </span>
@@ -148,7 +149,7 @@ export default function ReceiptContent({ job, currentShopId }: Props) {
           type="success"
           style={{ marginBottom: 16 }}
           message={
-            <span>📥 รับโอนจาก <strong>{transfer.fromShop.name}</strong> ({transfer.fromShop.refCode})</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ArrowDownToLine size={15} /> รับโอนจาก <strong>{transfer.fromShop.name}</strong> ({transfer.fromShop.refCode})</span>
           }
         />
       )}
@@ -165,7 +166,7 @@ export default function ReceiptContent({ job, currentShopId }: Props) {
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <Title level={3} style={{ marginBottom: 4 }}>🔧 ดีดีช่างยนต์</Title>
+        <Title level={3} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Wrench size={22} /> ดีดีช่างยนต์</Title>
         <Text type="secondary">ใบงานซ่อม</Text>
       </div>
 

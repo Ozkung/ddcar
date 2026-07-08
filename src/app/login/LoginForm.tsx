@@ -53,7 +53,7 @@ export default function LoginForm() {
       setError('Email, Password หรือรหัสร้านไม่ถูกต้อง')
     } else {
       if (refCode) saveRefCode(refCode)
-      router.push('/')
+      router.push('/dashboard')
       router.refresh()
     }
   }

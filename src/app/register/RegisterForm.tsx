@@ -59,7 +59,7 @@ export default function RegisterForm() {
         setError('สมัครสมาชิกสำเร็จ แต่เข้าสู่ระบบไม่ได้ กรุณา Login ใหม่')
         router.push('/login')
       } else {
-        router.push('/')
+        router.push('/dashboard')
         router.refresh()
       }
     } catch {

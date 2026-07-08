@@ -7,7 +7,14 @@ export default auth((req) => {
 
   // ── Public paths — always allow ──────────────────────────────────────
   const isPublic =
+    pathname === '/' ||
+    pathname === '/about' ||
+    pathname === '/price' ||
+    pathname === '/contact' ||
     pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname === '/setup' ||
     pathname === '/offline' ||
     pathname.startsWith('/api/auth') ||
@@ -25,18 +32,18 @@ export default auth((req) => {
   // ── /admin/* → SUPER_ADMIN or SHOP_ADMIN only ─────────────────────────
   if (pathname.startsWith('/admin')) {
     if (role !== 'SUPER_ADMIN' && role !== 'SHOP_ADMIN') {
-      return NextResponse.redirect(new URL('/', req.url))
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
   }
 
   // ── /analytics → not TECH ─────────────────────────────────────────────
   if (pathname.startsWith('/analytics') && role === 'TECH') {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // ── /stock → not TECH ─────────────────────────────────────────────────
   if (pathname.startsWith('/stock') && role === 'TECH') {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return NextResponse.next()

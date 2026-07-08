@@ -1,7 +1,4 @@
-import { Typography } from 'antd'
 import TermsTabs from './LegalTabs'
-
-const { Title } = Typography
 
 export default function TermsPage() {
   const appName     = process.env.NEXT_PUBLIC_APP_NAME     ?? 'ดีดีช่างยนต์'
@@ -11,7 +8,7 @@ export default function TermsPage() {
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '2rem 1.5rem' }}>
-      <Title level={2}>ข้อกำหนดการให้บริการ / Terms of Service</Title>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>ข้อกำหนดการให้บริการ / Terms of Service</h2>
       <TermsTabs
         appName={appName}
         companyName={companyName}

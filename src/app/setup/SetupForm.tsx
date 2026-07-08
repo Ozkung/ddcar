@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Form, Input, Button, Card, Typography, Alert } from 'antd'
 import { ShopOutlined } from '@ant-design/icons'
+import { Wrench, CheckCircle, Pin } from 'lucide-react'
 
 const { Title, Text } = Typography
 
@@ -49,7 +50,7 @@ export default function SetupForm() {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f1f5f9' }}>
         <Card style={{ width: 480, textAlign: 'center' }}>
           <ShopOutlined style={{ fontSize: 48, color: '#2563eb', marginBottom: 16 }} />
-          <Title level={3}>ตั้งค่าระบบสำเร็จ! ✅</Title>
+          <Title level={3} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>ตั้งค่าระบบสำเร็จ! <CheckCircle size={24} color="#52c41a" /></Title>
           <Text>ร้าน: <strong>{done.shopName}</strong></Text>
           <br /><br />
           <Alert
@@ -61,7 +62,7 @@ export default function SetupForm() {
                 </strong>
               </>
             }
-            description="📌 บันทึกรหัสนี้ไว้ — จำเป็นสำหรับการ Login ทุกครั้ง"
+            description={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Pin size={14} /> บันทึกรหัสนี้ไว้ — จำเป็นสำหรับการ Login ทุกครั้ง</span>}
             type="warning"
             showIcon
             style={{ marginBottom: 24, textAlign: 'left' }}
@@ -77,8 +78,8 @@ export default function SetupForm() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f1f5f9' }}>
       <Card style={{ width: 480 }}>
-        <Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>
-          🔧 ตั้งค่าระบบครั้งแรก
+        <Title level={3} style={{ textAlign: 'center', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Wrench size={22} /> ตั้งค่าระบบครั้งแรก
         </Title>
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 24 }}>
           สร้างร้านและผู้ดูแลระบบ (Super Admin)

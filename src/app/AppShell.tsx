@@ -32,9 +32,9 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
 
   const navItems = [
     {
-      key: '/',
+      key: '/dashboard',
       icon: <CarOutlined />,
-      label: <Link href="/">รับรถเข้าซ่อม</Link>,
+      label: <Link href="/dashboard">รับรถเข้าซ่อม</Link>,
     },
     {
       key: '/report',
@@ -52,18 +52,7 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
         icon: <AppstoreOutlined />,
         label: <Link href="/stock">คลังอะไหล่</Link>,
       },
-      {
-        key: '/jobs/incoming',
-        icon: <SwapOutlined />,
-        label: (
-          <Link href="/jobs/incoming">
-            งานที่รับโอน{' '}
-            {pendingTransferCount > 0 && (
-              <Badge count={pendingTransferCount} size="small" style={{ marginLeft: 4 }} />
-            )}
-          </Link>
-        ),
-      },
+      // { key: '/jobs/incoming', icon: <SwapOutlined />, label: <Link href="/jobs/incoming">งานที่รับโอน</Link> },
     ] : []),
     ...(SUPER_ROLES.includes(user.role) ? [
       {
@@ -76,7 +65,7 @@ export default function AppShell({ user, pendingTransferCount, children }: Props
 
   // Match active key: exact for '/', prefix for others
   const selectedKey = navItems.find(item =>
-    item.key === '/' ? pathname === '/' : pathname.startsWith(item.key)
+    pathname.startsWith(item.key)
   )?.key ?? ''
 
   const siderWidth = 220

@@ -6,6 +6,7 @@ import {
   Space, Typography, Tooltip, message
 } from 'antd'
 import { SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons'
+import { ClipboardList } from 'lucide-react'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import type { RangePickerProps } from 'antd/es/date-picker'
 
@@ -199,7 +200,7 @@ export default function ReportPage() {
 
   return (
     <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
-      <Title level={4} style={{ marginBottom: 20 }}>📋 รายงานงานซ่อม</Title>
+      <Title level={4} style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}><ClipboardList size={20} /> รายงานงานซ่อม</Title>
 
       {/* Filter bar */}
       <Space wrap style={{ marginBottom: 16 }}>

@@ -8,6 +8,7 @@ import {
   Space, Divider, message, Spin, Card, Tag, Alert,
 } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import { ArrowDownToLine, Pencil } from 'lucide-react'
 import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
@@ -136,7 +137,7 @@ export default function EditForm({ isDestinationShop = false, fromShopName = '' 
     <div style={{ maxWidth: 720, margin: '32px auto', padding: '0 16px' }}>
       {isDestinationShop && fromShopName && (
         <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', marginBottom: 16 }}>
-          📥 รับโอนจาก <strong>{fromShopName}</strong> — แก้ไขได้เฉพาะสถานะและอะไหล่
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ArrowDownToLine size={15} /> รับโอนจาก <strong>{fromShopName}</strong> — แก้ไขได้เฉพาะสถานะและอะไหล่</span>
         </div>
       )}
       <Space style={{ marginBottom: 16 }}>
@@ -144,7 +145,7 @@ export default function EditForm({ isDestinationShop = false, fromShopName = '' 
       </Space>
 
       <Card>
-        <Title level={4} style={{ marginBottom: 4 }}>✏️ แก้ไขใบงาน</Title>
+        <Title level={4} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}><Pencil size={18} /> แก้ไขใบงาน</Title>
         <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
           เลขที่ใบงาน: <strong>{jobNo}</strong>
         </Text>

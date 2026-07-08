@@ -9,7 +9,7 @@ import {
   DollarOutlined, CarOutlined, ToolOutlined,
   CheckCircleOutlined, WarningOutlined, ReloadOutlined,
 } from '@ant-design/icons'
-// CarOutlined used in KPI cards
+import { Banknote, PieChart as PieChartIcon, Wrench, Calendar, Users, Car, Star, RefreshCw, Sparkles, Moon, BarChart2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { RangePickerProps } from 'antd/es/date-picker'
 
@@ -56,11 +56,17 @@ const CLUSTER_TAGS: Record<string, string> = {
   'VIP': 'gold', 'ประจำ': 'blue', 'ใหม่': 'green', 'เงียบหาย': 'default',
 }
 const BAR_COLORS = ['#1677ff', '#4096ff', '#69b1ff', '#91caff', '#bae0ff']
+const CLUSTER_ICONS: Record<string, React.ReactNode> = {
+  'VIP': <Star size={12} />,
+  'ประจำ': <RefreshCw size={12} />,
+  'ใหม่': <Sparkles size={12} />,
+  'เงียบหาย': <Moon size={12} />,
+}
 const fmt = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits: 0 })
 
 /* ─── Sub-components ─────────────────────────────────────────────────────── */
 function ChartCard({ title, height = 260, children }: {
-  title: string; height?: number; children: React.ReactNode
+  title: React.ReactNode; height?: number; children: React.ReactNode
 }) {
   return (
     <Card size="small" style={{ height: '100%' }}>
@@ -136,7 +142,7 @@ export default function AnalyticsPage() {
       title: 'Cluster', dataIndex: 'cluster', key: 'cluster', width: 110,
       filters: ['VIP', 'ประจำ', 'ใหม่', 'เงียบหาย'].map(c => ({ text: c, value: c })),
       onFilter: (v, r) => r.cluster === v,
-      render: (c: string) => <Tag color={CLUSTER_TAGS[c] ?? 'default'}>{c === 'VIP' ? '🌟 VIP' : c === 'ประจำ' ? '🔄 ประจำ' : c === 'ใหม่' ? '🆕 ใหม่' : '😴 เงียบหาย'}</Tag>,
+      render: (c: string) => <Tag color={CLUSTER_TAGS[c] ?? 'default'} icon={CLUSTER_ICONS[c]}>{c}</Tag>,
     },
   ]
 
@@ -150,7 +156,7 @@ export default function AnalyticsPage() {
     <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
       {/* ── Header + Filter ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-        <Title level={4} style={{ margin: 0 }}>📊 วิเคราะห์ข้อมูล</Title>
+        <Title level={4} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><BarChart2 size={20} /> วิเคราะห์ข้อมูล</Title>
         <Space wrap>
           <RangePicker
             placeholder={['วันที่เริ่มต้น', 'วันที่สิ้นสุด']}
@@ -205,7 +211,7 @@ export default function AnalyticsPage() {
       {/* ── Row 1: Revenue + Status ─────────────────────────────────────────── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} lg={16}>
-          <ChartCard title="💰 รายได้รายเดือน (12 เดือนย้อนหลัง)" height={280}>
+          <ChartCard title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Banknote size={15} /> รายได้รายเดือน (12 เดือนย้อนหลัง)</span>} height={280}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={revenueByMonth} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -225,7 +231,7 @@ export default function AnalyticsPage() {
           </ChartCard>
         </Col>
         <Col xs={24} lg={8}>
-          <ChartCard title="📋 สัดส่วนสถานะงาน" height={280}>
+          <ChartCard title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><PieChartIcon size={15} /> สัดส่วนสถานะงาน</span>} height={280}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={statusDist} dataKey="count" nameKey="status" cx="50%" cy="45%"
@@ -248,7 +254,7 @@ export default function AnalyticsPage() {
       {/* ── Row 2: Symptoms + Day of week ──────────────────────────────────── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
-          <ChartCard title="🔧 อาการที่พบบ่อย">
+          <ChartCard title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Wrench size={15} /> อาการที่พบบ่อย</span>}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={symptomFreq} layout="vertical" margin={{ left: 20, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -265,7 +271,7 @@ export default function AnalyticsPage() {
           </ChartCard>
         </Col>
         <Col xs={24} md={12}>
-          <ChartCard title="📅 จำนวนงานแต่ละวันในสัปดาห์">
+          <ChartCard title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Calendar size={15} /> จำนวนงานแต่ละวันในสัปดาห์</span>}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={jobsByDow} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -284,7 +290,7 @@ export default function AnalyticsPage() {
       </Row>
 
       {/* ── Customer Clusters ───────────────────────────────────────────────── */}
-      <Divider orientation="left"><Title level={5} style={{ margin: 0 }}>👥 Customer Clusters (RFM)</Title></Divider>
+      <Divider orientation="left"><Title level={5} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><Users size={16} /> Customer Clusters (RFM)</Title></Divider>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         {/* Donut chart */}
         <Col xs={24} md={8}>
@@ -312,17 +318,17 @@ export default function AnalyticsPage() {
         <Col xs={24} md={16}>
           <Row gutter={[12, 12]}>
             {[
-              { cluster: 'VIP', emoji: '🌟', desc: 'มา ≥ 4 ครั้ง หรือ ≥ 2 ครั้ง + ยอด ≥ 10,000 บาท' },
-              { cluster: 'ประจำ', emoji: '🔄', desc: 'มา ≥ 2 ครั้ง ภายใน 1 ปี' },
-              { cluster: 'ใหม่', emoji: '🆕', desc: 'มาครั้งแรก ภายใน 90 วัน' },
-              { cluster: 'เงียบหาย', emoji: '😴', desc: 'ไม่มาเกิน 1 ปี หรือมา 1 ครั้ง แล้วหายไป' },
-            ].map(({ cluster, emoji, desc }) => {
+              { cluster: 'VIP', icon: <Star size={14} />, desc: 'มา ≥ 4 ครั้ง หรือ ≥ 2 ครั้ง + ยอด ≥ 10,000 บาท' },
+              { cluster: 'ประจำ', icon: <RefreshCw size={14} />, desc: 'มา ≥ 2 ครั้ง ภายใน 1 ปี' },
+              { cluster: 'ใหม่', icon: <Sparkles size={14} />, desc: 'มาครั้งแรก ภายใน 90 วัน' },
+              { cluster: 'เงียบหาย', icon: <Moon size={14} />, desc: 'ไม่มาเกิน 1 ปี หรือมา 1 ครั้ง แล้วหายไป' },
+            ].map(({ cluster, icon, desc }) => {
               const count = customerClusters.summary.find(s => s.cluster === cluster)?.count ?? 0
               return (
                 <Col xs={12} key={cluster}>
                   <Card size="small" style={{ borderLeft: `4px solid ${CLUSTER_COLORS[cluster]}` }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: CLUSTER_COLORS[cluster] }}>{count}</div>
-                    <div style={{ fontWeight: 600 }}>{emoji} {cluster}</div>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>{icon} {cluster}</div>
                     <Text type="secondary" style={{ fontSize: 11 }}>{desc}</Text>
                   </Card>
                 </Col>
@@ -346,7 +352,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* ── Top Vehicles ────────────────────────────────────────────────────── */}
-      <Divider orientation="left"><Title level={5} style={{ margin: 0 }}>🚗 ทะเบียนรถที่มาซ่อมบ่อย (Top 10)</Title></Divider>
+      <Divider orientation="left"><Title level={5} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}><Car size={16} /> ทะเบียนรถที่มาซ่อมบ่อย (Top 10)</Title></Divider>
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>
           <Card size="small">
