@@ -15,11 +15,6 @@ services:
       retries: 10
     networks:
       - restaurant-net
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   app:
     image: ${APP_IMAGE}
@@ -37,11 +32,6 @@ services:
         condition: service_healthy
     networks:
       - restaurant-net
-    logging:
-      driver: json-file
-      options:
-        max-size: "20m"
-        max-file: "5"
 
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -54,11 +44,6 @@ services:
       - app
     networks:
       - restaurant-net
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
 
 volumes:
   pg_data:
