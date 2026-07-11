@@ -17,8 +17,6 @@ services:
       - restaurant-net
 
   app:
-    image: ${APP_IMAGE}
-    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       NODE_ENV: production
