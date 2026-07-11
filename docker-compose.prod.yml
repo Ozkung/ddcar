@@ -37,7 +37,7 @@ services:
 
   tunnel:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflared-tunnel
+    container_name: cloudflared-ddcar
     restart: always
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
