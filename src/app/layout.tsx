@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Sarabun } from 'next/font/google'
+import localFont from 'next/font/local'
 import { AntdRegistry } from '@ant-design/nextjs-registry'
 import { ConfigProvider } from 'antd'
 import thTH from 'antd/locale/th_TH'
@@ -9,10 +9,23 @@ import { prisma } from '@/lib/prisma'
 import AppShell from './AppShell'
 import './globals.css'
 
-const sarabun = Sarabun({
-  subsets: ['thai', 'latin'],
-  weight: ['400', '600', '700'],
+const sarabun = localFont({
+  src: [
+    { path: '../../public/fonts/sarabun-400-thai.woff2',      weight: '400', style: 'normal' },
+    { path: '../../public/fonts/sarabun-400-latin.woff2',     weight: '400', style: 'normal' },
+    { path: '../../public/fonts/sarabun-400-latin-ext.woff2', weight: '400', style: 'normal' },
+    { path: '../../public/fonts/sarabun-400-vietnamese.woff2',weight: '400', style: 'normal' },
+    { path: '../../public/fonts/sarabun-600-thai.woff2',      weight: '600', style: 'normal' },
+    { path: '../../public/fonts/sarabun-600-latin.woff2',     weight: '600', style: 'normal' },
+    { path: '../../public/fonts/sarabun-600-latin-ext.woff2', weight: '600', style: 'normal' },
+    { path: '../../public/fonts/sarabun-600-vietnamese.woff2',weight: '600', style: 'normal' },
+    { path: '../../public/fonts/sarabun-700-thai.woff2',      weight: '700', style: 'normal' },
+    { path: '../../public/fonts/sarabun-700-latin.woff2',     weight: '700', style: 'normal' },
+    { path: '../../public/fonts/sarabun-700-latin-ext.woff2', weight: '700', style: 'normal' },
+    { path: '../../public/fonts/sarabun-700-vietnamese.woff2',weight: '700', style: 'normal' },
+  ],
   display: 'swap',
+  variable: '--font-sarabun',
 })
 
 export const metadata: Metadata = {
