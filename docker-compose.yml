@@ -44,7 +44,14 @@ services:
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - app
-
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-tunnel
+    restart: always
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    command: tunnel --protocol http2 run
+    
 volumes:
   pg_data:
   uploads_data:
